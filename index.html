@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>德國橋牌計分板 v7.2 Sticky</title>
+    <style>
+        :root {
+            --bg-dark: #121212;
+            --surface: #1e1e1e;
+            --primary: #bb86fc;
+            --primary-variant: #3700b3;
+            --text-main: #ffffff;
+            --text-muted: #a0a0a0;
+            --border: #2c2c2c;
+            --success: #03dac6;
+            --error: #cf6679;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg-dark); color: var(--text-main); font-size: 16px; padding-bottom: 30px; }
+        
+        header { background-color: var(--surface); padding: 15px; text-align: center; border-bottom: 1px solid var(--border); }
+        header h1 { font-size: 20px; font-weight: 600; color: var(--text-main); }
+        
+        .nav-tabs { display: flex; background-color: var(--surface); border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 100; }
+        .tab-btn { flex: 1; padding: 15px 0; text-align: center; background: none; border: none; color: var(--text-muted); font-size: 16px; font-weight: bold; cursor: pointer; position: relative; }
+        .tab-btn.active { color: var(--primary); }
+        .tab-btn.active::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 3px; background-color: var(--primary); }
+        
+        .main-container { padding: 16px; display: block; }
+        .panel { display: none; }
+        .panel.active { display: block; }
+        
+        .setup-card { background: var(--surface); padding: 16px; border-radius: 8px; margin-bottom: 16px; }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; color: var(--text-muted); font-size: 14px; margin-bottom: 6px; }
+        select, input[type="text"] { width: 100%; background: #2d2d2d; border: 1px solid var(--border); color: #fff; padding: 12px; border-radius: 6px; font-size: 16px; outline: none; }
+        .names-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
+        
+        .game-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .round-title { font-size: 22px; font-weight: bold; }
+        .dealer-tip { font-size: 14px; color: var(--primary); background: rgba(187,134,252,0.1); padding: 4px 8px; border-radius: 4px; }
+        .section-label { color: var(--text-muted); font-size: 15px; margin-top: 15px; margin-bottom: 10px; }
+        
+        .inputs-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; margin-bottom: 15px; }
+        .player-label { font-size: 14px; font-weight: 500; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 6px; }
+        input[type="number"].mobile-input { width: 100%; background: #252525; border: 1px solid var(--border); color: white; text-align: center; padding: 15px 0; font-size: 20px; font-weight: bold; border-radius: 8px; -moz-appearance: textfield; }
+        input[type="number"].mobile-input::-webkit-outer-spin-button, input[type="number"].mobile-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="number"].mobile-input:focus { border-color: var(--primary); background: #2a2235; }
+        input[type="number"].screw-highlight { border-color: #f1c40f !important; background: #332b15; }
+        
+        .action-btn { width: 100%; background-color: var(--primary); color: #000; padding: 16px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin: 10px 0; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+        .action-btn:disabled { background-color: #444; color: #888; box-shadow: none; }
+        .action-btn.btn-secondary { background-color: #333; color: #fff; border: 1px solid #444; }
+        .action-btn.btn-warning { background-color: #f39c12; color: #000; }
+        
+        .history-card { background: var(--surface); padding: 14px; border-radius: 8px; margin-top: 20px; border-left: 4px solid var(--primary); }
+        .history-card h4 { font-size: 14px; color: var(--text-muted); margin-bottom: 8px; }
+        .history-item { font-size: 15px; margin-bottom: 4px; display: flex; justify-content: space-between; }
+        
+        /* 👑 積分板表格優化（加入高度限制及固定表頭） */
+        .table-responsive-wrapper { width: 100%; overflow-x: auto; overflow-y: auto; max-height: 75vh; } /* 限制最大高度，容許垂直捲動 */
+        .score-board-table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: center; }
+        
+        /* ⚡ 核心改動：將 th 設為 sticky 固頂 */
+        .score-board-table th { 
+            position: sticky; 
+            top: 0; 
+            background: #1e1e1e; /* 必須設定實色背景，防止下面的局數穿透 */
+            color: var(--text-muted); 
+            font-weight: normal; 
+            padding: 14px 6px; 
+            font-size: 13px; 
+            border-bottom: 2px solid var(--border); 
+            white-space: nowrap;
+            z-index: 10; /* 確保疊在一般單元格上面 */
+        }
+        .score-board-table td { padding: 14px 4px; font-size: 14px; border-bottom: 1px solid var(--border); background: var(--surface); }
+        .score-board-table .round-col { color: var(--text-muted); font-size: 13px; width: 35px; }
+        .score-detail { font-size: 10px; color: var(--text-muted); display: block; margin-top: 2px; }
+        
+        /* 總數行固底（可選，打到好深時總數依然在最底） */
+        .total-row { font-weight: bold; position: sticky; bottom: 0; z-index: 5; }
+        .total-row td { color: var(--primary); font-size: 16px; padding: 18px 4px; background: #252525; border-top: 2px solid var(--border); }
+
+        @media (min-width: 850px) {
+            header { padding: 25px; }
+            header h1 { font-size: 26px; }
+            .nav-tabs { display: none !important; }
+            .main-container { display: flex; gap: 25px; max-width: 1400px; margin: 0 auto; padding: 25px; }
+            .panel { display: block !important; flex: 1; min-width: 0; background: var(--surface); padding: 25px; border-radius: 12px; height: fit-content; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+            #input-panel { flex: 1.2; }
+            #board-panel { flex: 1.8; }
+            
+            /* 電腦版配合兩欄，可微調大表格顯示高度 */
+            .table-responsive-wrapper { max-height: 80vh; }
+            .round-title { font-size: 26px; }
+            .score-board-table th { font-size: 15px; padding: 15px 8px; top: 0; }
+            .score-board-table td { font-size: 16px; padding: 16px 8px; }
+        }
+    </style>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2352376757469824"
+     crossorigin="anonymous"></script>
+</head>
+<body>
+
+    <header>
+        <h1>德國橋牌智能計分系統 v7.2</h1>
+    </header>
+
+    <div class="nav-tabs">
+        <button class="tab-btn active" id="btn-input" onclick="switchTab('input-panel')">輸入</button>
+        <button class="tab-btn" id="btn-board" onclick="switchTab('board-panel')">積分板</button>
+    </div>
+
+    <div class="main-container">
+        
+        <div id="input-panel" class="panel active">
+            <div class="setup-card" id="setup-area">
+                <div class="form-group">
+                    <label>選擇人數</label>
+                    <select id="player-count" onchange="initPlayerInputs()">
+                        <option value="3">3 人遊玩 (最多 17 局)</option>
+                        <option value="4" selected>4 人遊玩 (最多 13 局)</option>
+                        <option value="5">5 人遊玩 (最多 10 局)</option>
+                        <option value="6">6 人遊玩 (最多 8 局)</option>
+                        <option value="7">7 人遊玩 (最多 7 局)</option>
+                    </select>
+                </div>
+                <label>輸入玩家名字</label>
+                <div class="names-grid" id="names-fields-box"></div>
+                <button class="action-btn" onclick="startNewGame()">建立新對局</button>
+            </div>
+
+            <div id="game-play-area" style="display: none;">
+                <div class="game-header">
+                    <div class="round-title" id="display-round-title">局 1</div>
+                    <div class="dealer-tip" id="display-dealer-name">莊家: --</div>
+                </div>
+
+                <div id="section-bid">
+                    <div class="section-label">預計取得墩數 (Bid) <span id="screw-notice" style="color:#f1c40f; font-size:12px;"></span></div>
+                    <div class="inputs-grid" id="grid-bid-inputs"></div>
+                    <button class="action-btn" id="btn-start-round" onclick="lockBids()">開始本局</button>
+                </div>
+
+                <div id="section-result" style="opacity: 0.4; pointer-events: none;">
+                    <div class="section-label">實際贏取墩數 (Result)</div>
+                    <div class="inputs-grid" id="grid-result-inputs"></div>
+                    <button class="action-btn" id="btn-end-round" onclick="submitResults()" disabled>結束本局</button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;">
+                    <button class="action-btn btn-warning" onclick="resetCurrentRound()">↩️ 重設本局</button>
+                    <button class="action-btn btn-secondary" onclick="if(confirm('確定要重設並刪除所有分數嗎？')) resetToSetup()">🔄 重設遊戲</button>
+                </div>
+
+                <div class="history-card" id="last-round-card" style="display: none;">
+                    <h4>上一局積分</h4>
+                    <div id="last-round-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="board-panel" class="panel">
+            <div class="table-responsive-wrapper">
+                <table class="score-board-table">
+                    <thead>
+                        <tr id="board-th-row">
+                            <th class="round-col">局</th>
+                        </tr>
+                    </thead>
+                    <tbody id="board-tbody">
+                        <tr><td colspan="5" style="color:var(--text-muted); padding:30px;">對局建立後將在此實時更新積分表格</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+<script {see-previous-logic}>
+    let pCount = 4, maxRounds = 13, currentRound = 1;
+    let players = [], scoresHistory = []; 
+    let isDesktop = window.innerWidth >= 850;
+
+    window.onload = function() { 
+        initPlayerInputs(); 
+        window.addEventListener('resize', handleResize);
+    };
+
+    function handleResize() {
+        let checkDesktop = window.innerWidth >= 850;
+        if(checkDesktop !== isDesktop) {
+            isDesktop = checkDesktop;
+            if(scoresHistory.length >= 0) renderScoreBoard();
+            if(!isDesktop) switchTab('input-panel');
+        }
+    }
+
+    function switchTab(tabId) {
+        if(isDesktop) return;
+        
+        document.getElementById('btn-input').classList.remove('active');
+        document.getElementById('btn-board').classList.remove('active');
+        document.getElementById('input-panel').classList.remove('active');
+        document.getElementById('board-panel').classList.remove('active');
+
+        if(tabId === 'input-panel') {
+            document.getElementById('btn-input').classList.add('active');
+            document.getElementById('input-panel').classList.add('active');
+        } else {
+            document.getElementById('btn-board').classList.add('active');
+            document.getElementById('board-panel').classList.add('active');
+            renderScoreBoard();
+        }
+    }
+
+    function initPlayerInputs() {
+        pCount = parseInt(document.getElementById('player-count').value);
+        const box = document.getElementById('names-fields-box');
+        box.innerHTML = '';
+        for(let i=0; i<pCount; i++) {
+            let defVal = `玩家 ${String.fromCharCode(65 + i)}`;
+            box.innerHTML += `<input type="text" id="p-name-in-${i}" value="${defVal}">`;
+        }
+    }
+
+    function resetToSetup() {
+        document.getElementById('setup-area').style.display = 'block';
+        document.getElementById('game-play-area').style.display = 'none';
+        document.getElementById('last-round-card').style.display = 'none';
+        scoresHistory = []; currentRound = 1;
+        document.getElementById('board-tbody').innerHTML = `<tr><td colspan="${pCount+1}" style="color:var(--text-muted); padding:30px;">對局建立後將在此實時更新積分表格</td></tr>`;
+    }
+
+    function startNewGame() {
+        players = [];
+        for(let i=0; i<pCount; i++) {
+            let name = document.getElementById(`p-name-in-${i}`).value.trim();
+            players.push(name || `玩家 ${String.fromCharCode(65 + i)}`);
+        }
+        maxRounds = Math.floor(52 / pCount);
+        currentRound = 1;
+        scoresHistory = [];
+
+        document.getElementById('setup-area').style.display = 'none';
+        document.getElementById('game-play-area').style.display = 'block';
+        
+        setupRoundUI();
+        renderScoreBoard();
+    }
+
+    function setupRoundUI() {
+        if(currentRound > maxRounds) {
+            alert("遊戲已全部結束！");
+            if(!isDesktop) switchTab('board-panel');
+            return;
+        }
+
+        let dealerIdx = (currentRound - 1) % pCount;
+        let screwIdx = (dealerIdx - 1 + pCount) % pCount; 
+
+        document.getElementById('display-round-title').innerText = `局 ${currentRound}`;
+        document.getElementById('display-dealer-name').innerText = `莊家: ${players[dealerIdx]}`;
+
+        const bidGrid = document.getElementById('grid-bid-inputs');
+        bidGrid.innerHTML = '';
+        bidGrid.style.gridTemplateColumns = pCount > 4 ? `repeat(${Math.ceil(pCount/2)}, 1fr)` : "repeat(4, 1fr)";
+        
+        players.forEach((name, idx) => {
+            let isScrew = (idx === screwIdx);
+            bidGrid.innerHTML += `
+                <div style="margin-bottom: 5px;">
+                    <div class="player-label" title="${name}">${name}${isScrew?'(🎯)':''}</div>
+                    <input type="number" pattern="[0-9]*" inputmode="numeric" min="0" max="${currentRound}" 
+                           class="mobile-input ${isScrew?'screw-highlight':''}" id="bid-${idx}" oninput="handleBidInput(${idx})">
+                </div>`;
+        });
+
+        document.getElementById('screw-notice').innerText = `(🎯限制位不准叫總數相符)`;
+        
+        document.getElementById('section-bid').style.opacity = "1";
+        document.getElementById('section-bid').style.pointerEvents = "auto";
+        document.getElementById('btn-start-round').style.display = "block";
+        
+        document.getElementById('section-result').style.opacity = "0.4";
+        document.getElementById('section-result').style.pointerEvents = "none";
+        document.getElementById('btn-end-round').disabled = true;
+        
+        const resGrid = document.getElementById('grid-result-inputs');
+        resGrid.innerHTML = '';
+        resGrid.style.gridTemplateColumns = pCount > 4 ? `repeat(${Math.ceil(pCount/2)}, 1fr)` : "repeat(4, 1fr)";
+        
+        players.forEach((name, idx) => {
+            resGrid.innerHTML += `
+                <div style="margin-bottom: 5px;">
+                    <div class="player-label" title="${name}">${name}</div>
+                    <input type="number" pattern="[0-9]*" inputmode="numeric" min="0" max="${currentRound}" class="mobile-input" id="res-${idx}" oninput="handleResultInput(${idx})">
+                </div>`;
+        });
+    }
+
+    function handleBidInput(playerIdx) {
+        let inputEl = document.getElementById(`bid-${playerIdx}`);
+        let val = inputEl.value;
+        if(val === '') return;
+        
+        let intVal = parseInt(val);
+        if(intVal > currentRound || intVal < 0) {
+            alert(`⚠️ 叫注不能大過 ${currentRound}！`);
+            inputEl.value = '';
+            return;
+        }
+        validateScrewBid();
+    }
+
+    function handleResultInput(playerIdx) {
+        let inputEl = document.getElementById(`res-${playerIdx}`);
+        let val = inputEl.value;
+        if(val === '') return;
+        
+        let intVal = parseInt(val);
+        if(intVal > currentRound || intVal < 0) {
+            alert(`⚠️ 實得墩數不能大過 ${currentRound}！`);
+            inputEl.value = '';
+        }
+    }
+
+    function validateScrewBid() {
+        let dealerIdx = (currentRound - 1) % pCount;
+        let screwIdx = (dealerIdx - 1 + pCount) % pCount;
+        
+        let sum = 0;
+        let enteredCount = 0;
+        for(let i=0; i<pCount; i++) {
+            if(i !== screwIdx) {
+                let val = document.getElementById(`bid-${i}`).value;
+                if(val !== '') { sum += parseInt(val); enteredCount++; }
+            }
+        }
+        
+        let forbidden = currentRound - sum;
+        if(enteredCount === pCount - 1 && forbidden >= 0) {
+            document.getElementById('screw-notice').innerText = `(🎯首攻不准叫 ${forbidden})`;
+            let screwInput = document.getElementById(`bid-${screwIdx}`);
+            if(parseInt(screwInput.value) === forbidden) {
+                alert(`⚠️ 限制位不准叫 ${forbidden} 墩！`);
+                screwInput.value = '';
+            }
+        } else {
+            document.getElementById('screw-notice').innerText = `(🎯限制位不准叫總數相符)`;
+        }
+    }
+
+    function resetCurrentRound() {
+        if(confirm(`確定要重設「第 ${currentRound} 局」輸入嗎？`)) {
+            setupRoundUI();
+        }
+    }
+
+    function lockBids() {
+        for(let i=0; i<pCount; i++) {
+            if(document.getElementById(`bid-${i}`).value === '') { alert("請先填寫所有玩家的 Bid！"); return; }
+        }
+        document.getElementById('section-bid').style.opacity = "0.4";
+        document.getElementById('section-bid').style.pointerEvents = "none";
+        document.getElementById('btn-start-round').style.display = "none";
+        
+        document.getElementById('section-result').style.opacity = "1";
+        document.getElementById('section-result').style.pointerEvents = "auto";
+        document.getElementById('btn-end-round').disabled = false;
+    }
+
+    function submitResults() {
+        let currentBids = [], currentResults = [], currentScores = [], roundTotals = [];
+        let totalResultSum = 0;
+
+        for(let i=0; i<pCount; i++) {
+            let rVal = document.getElementById(`res-${i}`).value;
+            if(rVal === '') { alert("請填寫所有玩家的 Result！"); return; }
+            let resInt = parseInt(rVal);
+            currentResults.push(resInt);
+            currentBids.push(parseInt(document.getElementById(`bid-${i}`).value));
+            totalResultSum += resInt;
+        }
+
+        if(totalResultSum !== currentRound) {
+            alert(`⚠️ 墩數總和必須等於 ${currentRound} 墩！`);
+            return;
+        }
+
+        let prevTotals = scoresHistory.length > 0 ? scoresHistory[scoresHistory.length - 1].runningTotals : Array(pCount).fill(0);
+        
+        for(let i=0; i<pCount; i++) {
+            let b = currentBids[i], r = currentResults[i], score = 0;
+            if(b === r) {
+                score = 10 + Math.pow(r, 2);
+            } else {
+                score = -Math.pow(Math.abs(r - b), 2);
+            }
+            currentScores.push(score);
+            roundTotals.push(prevTotals[i] + score);
+        }
+
+        scoresHistory.push({
+            round: currentRound, bids: currentBids, results: currentResults, roundScores: currentScores, runningTotals: roundTotals
+        });
+
+        showLastRoundCard(currentScores);
+        renderScoreBoard();
+        currentRound++;
+        setupRoundUI();
+    }
+
+    function showLastRoundCard(scores) {
+        const card = document.getElementById('last-round-card');
+        const list = document.getElementById('last-round-list');
+        list.innerHTML = '';
+        players.forEach((name, i) => {
+            let s = scores[i];
+            list.innerHTML += `<div class="history-item"><span>${name} 得到</span> <strong>${s > 0 ? '+' + s : s}</strong></div>`;
+        });
+        card.style.display = 'block';
+    }
+
+    function renderScoreBoard() {
+        const thr = document.getElementById('board-th-row');
+        thr.innerHTML = `<th class="round-col">局</th>`;
+        players.forEach(name => { thr.innerHTML += `<th>${name}</th>`; });
+
+        const tbody = document.getElementById('board-tbody');
+        tbody.innerHTML = '';
+
+        if(scoresHistory.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="${pCount+1}" style="color:var(--text-muted); padding:30px;">對局建立後將在此實時更新積分表格</td></tr>`;
+            return;
+        }
+
+        scoresHistory.forEach(h => {
+            let rowHtml = `<tr><td class="round-col">${h.round}</td>`;
+            for(let i=0; i<pCount; i++) {
+                rowHtml += `<td>${h.runningTotals[i]}<span class="score-detail">(${h.bids[i]}|${h.results[i]})</span></td>`;
+            }
+            rowHtml += `</tr>`;
+            tbody.innerHTML += rowHtml;
+        });
+
+        let lastTotals = scoresHistory[scoresHistory.length - 1].runningTotals;
+        let totalHtml = `<tr class="total-row"><td class="round-col">總數</td>`;
+        for(let i=0; i<pCount; i++) { totalHtml += `<td>${lastTotals[i]}</td>`; }
+        totalHtml += `</tr>`;
+        tbody.innerHTML += totalHtml;
+    }
+</script>
+</body>
+</html>
