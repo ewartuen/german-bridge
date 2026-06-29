@@ -5,15 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
     <title>德國橋牌智能計分板 | German Bridge Scoreboard Tool</title>
-    <meta name="description" content="專為德國橋牌（German Bridge / 德州橋牌）愛好者打造的線上免下載計分板。支援 3 至 7 人遊玩，具備首攻限制位（🎯限制位）自動防錯提醒、自動計算墩數得分、即時排行榜功能，是聚會玩樂時必備的智能計分好幫手。">
-    <meta name="keywords" content="德國橋牌, 德國橋牌計分, 德州橋牌, German Bridge, 橋牌計分板, 橋牌 App, 聚會遊戲計分">
+    <meta name="description" content="專為德國橋牌愛好者打造的線上免下載計分板。具備當局座位動態順序排序、防重載自動存檔、首攻限制位自動防錯提醒，支援無限局數續局與 Excel 數據匯出。">
+    <meta name="keywords" content="德國橋牌, 德國橋牌計分, German Bridge, 橋牌計分板, 匯出Excel, 自動存檔, 動態座位">
     
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="德國橋牌智能計分系統 - 聚會必備玩樂神器">
-    <meta property="og:description" content="免下載隨開隨用！支援 3-7 位玩家，自動防錯、精確計分，實時更新積分表格，讓你告別紙筆，專注對局。">
-    <meta property="og:image" content="images/scoreboard-preview.png"> <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="德國橋牌智能計分系統">
-    <meta name="twitter:description" content="免下載隨開隨用！支援 3-7 位玩家，自動防錯、精確計分，實時更新積分表格。">
     <style>
         :root {
             --bg-dark: #121212;
@@ -44,52 +38,64 @@
         .setup-card { background: var(--surface); padding: 16px; border-radius: 8px; margin-bottom: 16px; }
         .form-group { margin-bottom: 12px; }
         label { display: block; color: var(--text-muted); font-size: 14px; margin-bottom: 6px; }
-        select, input[type="text"] { width: 100%; background: #2d2d2d; border: 1px solid var(--border); color: #fff; padding: 12px; border-radius: 6px; font-size: 16px; outline: none; }
+        
+        select, input[type="text"], input[type="number"].setup-input { width: 100%; background: #2d2d2d; border: 1px solid var(--border); color: #fff; padding: 12px; border-radius: 6px; font-size: 16px; outline: none; }
+        input[type="number"].setup-input:focus { border-color: var(--primary); }
+        
         .names-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
         
         .game-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .round-title { font-size: 22px; font-weight: bold; }
-        .dealer-tip { font-size: 14px; color: var(--primary); background: rgba(187,134,252,0.1); padding: 4px 8px; border-radius: 4px; }
+        .dealer-tip { font-size: 14px; color: var(--success); background: rgba(3,218,198,0.1); padding: 4px 8px; border-radius: 4px; font-weight: bold; }
         .section-label { color: var(--text-muted); font-size: 15px; margin-top: 15px; margin-bottom: 10px; }
         
         .inputs-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; margin-bottom: 15px; }
         .player-label { font-size: 14px; font-weight: 500; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 6px; }
+        .player-label.dealer-highlight { color: var(--success); font-weight: bold; }
+        .player-label.screw-highlight-txt { color: #f1c40f; font-weight: bold; }
+        
         input[type="number"].mobile-input { width: 100%; background: #252525; border: 1px solid var(--border); color: white; text-align: center; padding: 15px 0; font-size: 20px; font-weight: bold; border-radius: 8px; -moz-appearance: textfield; }
         input[type="number"].mobile-input::-webkit-outer-spin-button, input[type="number"].mobile-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         input[type="number"].mobile-input:focus { border-color: var(--primary); background: #2a2235; }
+        input[type="number"].dealer-border { border-color: var(--success) !important; background: #162a27; }
         input[type="number"].screw-highlight { border-color: #f1c40f !important; background: #332b15; }
         
         .action-btn { width: 100%; background-color: var(--primary); color: #000; padding: 16px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin: 10px 0; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
         .action-btn:disabled { background-color: #444; color: #888; box-shadow: none; }
         .action-btn.btn-secondary { background-color: #333; color: #fff; border: 1px solid #444; }
         .action-btn.btn-warning { background-color: #f39c12; color: #000; }
+        .action-btn.btn-success { background-color: var(--success); color: #000; }
         
+        .board-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .board-controls .action-btn { margin: 0; padding: 12px; font-size: 14px; }
+
         .history-card { background: var(--surface); padding: 14px; border-radius: 8px; margin-top: 20px; border-left: 4px solid var(--primary); }
         .history-card h4 { font-size: 14px; color: var(--text-muted); margin-bottom: 8px; }
         .history-item { font-size: 15px; margin-bottom: 4px; display: flex; justify-content: space-between; }
         
-        /* 👑 積分板表格優化（加入高度限制及固定表頭） */
-        .table-responsive-wrapper { width: 100%; overflow-x: auto; overflow-y: auto; max-height: 75vh; } /* 限制最大高度，容許垂直捲動 */
+        .table-responsive-wrapper { width: 100%; overflow-x: auto; overflow-y: auto; max-height: 75vh; } 
         .score-board-table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: center; }
         
-        /* ⚡ 核心改動：將 th 設為 sticky 固頂 */
         .score-board-table th { 
             position: sticky; 
             top: 0; 
-            background: #1e1e1e; /* 必須設定實色背景，防止下面的局數穿透 */
+            background: #1e1e1e; 
             color: var(--text-muted); 
             font-weight: normal; 
             padding: 14px 6px; 
             font-size: 13px; 
             border-bottom: 2px solid var(--border); 
             white-space: nowrap;
-            z-index: 10; /* 確保疊在一般單元格上面 */
+            z-index: 10; 
         }
+        .rank-0 { color: #f1c40f !important; font-weight: bold; } 
+        .rank-1 { color: #bdc3c7 !important; font-weight: bold; } 
+        .rank-2 { color: #e67e22 !important; font-weight: bold; } 
+
         .score-board-table td { padding: 14px 4px; font-size: 14px; border-bottom: 1px solid var(--border); background: var(--surface); }
         .score-board-table .round-col { color: var(--text-muted); font-size: 13px; width: 35px; }
         .score-detail { font-size: 10px; color: var(--text-muted); display: block; margin-top: 2px; }
         
-        /* 總數行固底（可選，打到好深時總數依然在最底） */
         .total-row { font-weight: bold; position: sticky; bottom: 0; z-index: 5; }
         .total-row td { color: var(--primary); font-size: 16px; padding: 18px 4px; background: #252525; border-top: 2px solid var(--border); }
 
@@ -102,7 +108,6 @@
             #input-panel { flex: 1.2; }
             #board-panel { flex: 1.8; }
             
-            /* 電腦版配合兩欄，可微調大表格顯示高度 */
             .table-responsive-wrapper { max-height: 80vh; }
             .round-title { font-size: 26px; }
             .score-board-table th { font-size: 15px; padding: 15px 8px; top: 0; }
@@ -128,16 +133,10 @@
         <div id="input-panel" class="panel active">
             <div class="setup-card" id="setup-area">
                 <div class="form-group">
-                    <label>選擇人數</label>
-                    <select id="player-count" onchange="initPlayerInputs()">
-                        <option value="3">3 人遊玩 (最多 17 局)</option>
-                        <option value="4" selected>4 人遊玩 (最多 13 局)</option>
-                        <option value="5">5 人遊玩 (最多 10 局)</option>
-                        <option value="6">6 人遊玩 (最多 8 局)</option>
-                        <option value="7">7 人遊玩 (最多 7 局)</option>
-                    </select>
+                    <label>選擇人數 (請輸入數字)</label>
+                    <input type="number" id="player-count" class="setup-input" value="4" min="2" max="52" oninput="initPlayerInputs()">
                 </div>
-                <label>輸入玩家名字</label>
+                <label>依據初始順時針座位輸入玩家名字</label>
                 <div class="names-grid" id="names-fields-box"></div>
                 <button class="action-btn" onclick="startNewGame()">建立新對局</button>
             </div>
@@ -145,7 +144,11 @@
             <div id="game-play-area" style="display: none;">
                 <div class="game-header">
                     <div class="round-title" id="display-round-title">局 1</div>
-                    <div class="dealer-tip" id="display-dealer-name">莊家: --</div>
+                    <div class="dealer-tip" id="display-dealer-name">👑 莊家: --</div>
+                </div>
+
+                <div style="margin-bottom: 12px; font-size: 13px; color: var(--text-muted);">
+                    🔄 <span>座位已順序對齊：<strong>左 (莊家) ➡️ 右 (下家 ➡️ 限制位)</strong></span>
                 </div>
 
                 <div id="section-bid">
@@ -160,19 +163,26 @@
                     <button class="action-btn" id="btn-end-round" onclick="submitResults()" disabled>結束本局</button>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;">
-                    <button class="action-btn btn-warning" onclick="resetCurrentRound()">↩️ 重設本局</button>
-                    <button class="action-btn btn-secondary" onclick="if(confirm('確定要重設並刪除所有分數嗎？')) resetToSetup()">🔄 重設遊戲</button>
-                </div>
+                <button class="action-btn btn-warning" onclick="resetCurrentRound()">↩️ 重設本局</button>
 
                 <div class="history-card" id="last-round-card" style="display: none;">
-                    <h4>上一局積分</h4>
+                    <h4>上一局得分</h4>
                     <div id="last-round-list"></div>
                 </div>
             </div>
         </div>
 
         <div id="board-panel" class="panel">
+            
+            <div class="board-controls" id="board-action-controls" style="display: none;">
+                <button class="action-btn btn-success" onclick="exportToExcel()">📊 匯出 Excel 檔</button>
+                <button class="action-btn btn-secondary" onclick="if(confirm('確定要重設並刪除所有分數嗎？')) resetToSetup()">🔄 重設遊戲</button>
+            </div>
+
+            <div style="margin-bottom: 10px; font-size: 13px; color: var(--text-muted); display: flex; justify-content: space-between;">
+                <span>💡 積分板已開啟「即時排行榜」排序 (由左至右為第一名到最後名)</span>
+            </div>
+            
             <div class="table-responsive-wrapper">
                 <table class="score-board-table">
                     <thead>
@@ -189,14 +199,17 @@
 
     </div>
 
-<script {see-previous-logic}>
-    let pCount = 4, maxRounds = 13, currentRound = 1;
-    let players = [], scoresHistory = []; 
+<script>
+    let pCount = 4, currentRound = 1;
+    let initialPlayers = []; // 固定的物理初始座位順序 [0, 1, 2, 3]
+    let sortedOrder = [];    // 排行榜順序
+    let scoresHistory = [];  
     let isDesktop = window.innerWidth >= 850;
 
     window.onload = function() { 
         initPlayerInputs(); 
         window.addEventListener('resize', handleResize);
+        checkLocalStorageLoad(); 
     };
 
     function handleResize() {
@@ -210,7 +223,6 @@
 
     function switchTab(tabId) {
         if(isDesktop) return;
-        
         document.getElementById('btn-input').classList.remove('active');
         document.getElementById('btn-board').classList.remove('active');
         document.getElementById('input-panel').classList.remove('active');
@@ -227,7 +239,10 @@
     }
 
     function initPlayerInputs() {
-        pCount = parseInt(document.getElementById('player-count').value);
+        let rawVal = document.getElementById('player-count').value;
+        pCount = parseInt(rawVal);
+        if (isNaN(pCount) || pCount < 2) pCount = 4;
+        
         const box = document.getElementById('names-fields-box');
         box.innerHTML = '';
         for(let i=0; i<pCount; i++) {
@@ -236,55 +251,114 @@
         }
     }
 
+    function saveToLocalStorage() {
+        localStorage.setItem('gb_pCount', pCount);
+        localStorage.setItem('gb_currentRound', currentRound);
+        localStorage.setItem('gb_initialPlayers', JSON.stringify(initialPlayers));
+        localStorage.setItem('gb_sortedOrder', JSON.stringify(sortedOrder));
+        localStorage.setItem('gb_scoresHistory', JSON.stringify(scoresHistory));
+    }
+
+    function checkLocalStorageLoad() {
+        let savedHistory = localStorage.getItem('gb_scoresHistory');
+        if (savedHistory && JSON.parse(savedHistory).length > 0) {
+            scoresHistory = JSON.parse(savedHistory);
+            pCount = parseInt(localStorage.getItem('gb_pCount'));
+            currentRound = parseInt(localStorage.getItem('gb_currentRound'));
+            initialPlayers = JSON.parse(localStorage.getItem('gb_initialPlayers'));
+            sortedOrder = JSON.parse(localStorage.getItem('gb_sortedOrder'));
+
+            document.getElementById('setup-area').style.display = 'none';
+            document.getElementById('game-play-area').style.display = 'block';
+            document.getElementById('board-action-controls').style.display = 'grid'; 
+
+            setupRoundUI();
+            renderScoreBoard();
+
+            if(scoresHistory.length > 0) {
+                showLastRoundCard(scoresHistory[scoresHistory.length - 1].roundScores);
+            }
+        }
+    }
+
     function resetToSetup() {
+        localStorage.clear();
         document.getElementById('setup-area').style.display = 'block';
         document.getElementById('game-play-area').style.display = 'none';
         document.getElementById('last-round-card').style.display = 'none';
+        document.getElementById('board-action-controls').style.display = 'none'; 
         scoresHistory = []; currentRound = 1;
         document.getElementById('board-tbody').innerHTML = `<tr><td colspan="${pCount+1}" style="color:var(--text-muted); padding:30px;">對局建立後將在此實時更新積分表格</td></tr>`;
+        if(!isDesktop) switchTab('input-panel');
     }
 
     function startNewGame() {
-        players = [];
+        let rawVal = document.getElementById('player-count').value;
+        pCount = parseInt(rawVal);
+        if (isNaN(pCount) || pCount < 2) { alert("請輸入有效的玩家人數！"); return; }
+
+        initialPlayers = [];
+        sortedOrder = [];
         for(let i=0; i<pCount; i++) {
-            let name = document.getElementById(`p-name-in-${i}`).value.trim();
-            players.push(name || `玩家 ${String.fromCharCode(65 + i)}`);
+            let nameIn = document.getElementById(`p-name-in-${i}`);
+            let name = nameIn ? nameIn.value.trim() : "";
+            initialPlayers.push(name || `玩家 ${String.fromCharCode(65 + i)}`);
+            sortedOrder.push(i); 
         }
-        maxRounds = Math.floor(52 / pCount);
+        
         currentRound = 1;
         scoresHistory = [];
 
         document.getElementById('setup-area').style.display = 'none';
         document.getElementById('game-play-area').style.display = 'block';
+        document.getElementById('board-action-controls').style.display = 'grid'; 
         
+        saveToLocalStorage(); 
         setupRoundUI();
         renderScoreBoard();
     }
 
-    function setupRoundUI() {
-        if(currentRound > maxRounds) {
-            alert("遊戲已全部結束！");
-            if(!isDesktop) switchTab('board-panel');
-            return;
+    // 👑 核心優化：計算當局由左至右座位動態順序（由莊家開始）
+    function getRoundSeatOrder() {
+        let dealerIdx = (currentRound - 1) % pCount;
+        let order = [];
+        for (let i = 0; i < pCount; i++) {
+            order.push((dealerIdx + i) % pCount);
         }
+        return order; // 返回一個陣列，排第一嘅就係莊家，排最後嘅就係限制位
+    }
+
+    function setupRoundUI() {
+        let maxCardsPerPerson = Math.floor(52 / pCount);
+        let currentHandCards = ((currentRound - 1) % maxCardsPerPerson) + 1;
 
         let dealerIdx = (currentRound - 1) % pCount;
         let screwIdx = (dealerIdx - 1 + pCount) % pCount; 
 
-        document.getElementById('display-round-title').innerText = `局 ${currentRound}`;
-        document.getElementById('display-dealer-name').innerText = `莊家: ${players[dealerIdx]}`;
+        document.getElementById('display-round-title').innerText = `局 ${currentRound} (發 ${currentHandCards} 張)`;
+        document.getElementById('display-dealer-name').innerText = `👑 莊家: ${initialPlayers[dealerIdx]}`;
+
+        // 👑 取得當局由左至右嘅座位順序
+        let roundSeatOrder = getRoundSeatOrder();
 
         const bidGrid = document.getElementById('grid-bid-inputs');
         bidGrid.innerHTML = '';
         bidGrid.style.gridTemplateColumns = pCount > 4 ? `repeat(${Math.ceil(pCount/2)}, 1fr)` : "repeat(4, 1fr)";
         
-        players.forEach((name, idx) => {
+        roundSeatOrder.forEach((idx) => {
+            let name = initialPlayers[idx];
+            let isDealer = (idx === dealerIdx);
             let isScrew = (idx === screwIdx);
+            
+            let labelTag = isDealer ? ' (莊)' : (isScrew ? ' (🎯)' : '');
+            let labelClass = isDealer ? 'dealer-highlight' : (isScrew ? 'screw-highlight-txt' : '');
+            let inputClass = isDealer ? 'dealer-border' : (isScrew ? 'screw-highlight' : '');
+
             bidGrid.innerHTML += `
                 <div style="margin-bottom: 5px;">
-                    <div class="player-label" title="${name}">${name}${isScrew?'(🎯)':''}</div>
-                    <input type="number" pattern="[0-9]*" inputmode="numeric" min="0" max="${currentRound}" 
-                           class="mobile-input ${isScrew?'screw-highlight':''}" id="bid-${idx}" oninput="handleBidInput(${idx})">
+                    <div class="player-label ${labelClass}" title="${name}">${name}${labelTag}</div>
+                    <input type="number" pattern="[0-9]*" inputmode="numeric" min="0" max="${currentHandCards}" 
+                           class="mobile-input ${inputClass}" id="bid-${idx}" oninput="handleBidInput(${idx}, ${currentHandCards})">
                 </div>`;
         });
 
@@ -302,42 +376,50 @@
         resGrid.innerHTML = '';
         resGrid.style.gridTemplateColumns = pCount > 4 ? `repeat(${Math.ceil(pCount/2)}, 1fr)` : "repeat(4, 1fr)";
         
-        players.forEach((name, idx) => {
+        roundSeatOrder.forEach((idx) => {
+            let name = initialPlayers[idx];
+            let isDealer = (idx === dealerIdx);
+            let isScrew = (idx === screwIdx);
+            let labelTag = isDealer ? ' (莊)' : (isScrew ? ' (🎯)' : '');
+            let labelClass = isDealer ? 'dealer-highlight' : (isScrew ? 'screw-highlight-txt' : '');
+            let inputClass = isDealer ? 'dealer-border' : '';
+
             resGrid.innerHTML += `
                 <div style="margin-bottom: 5px;">
-                    <div class="player-label" title="${name}">${name}</div>
-                    <input type="number" pattern="[0-9]*" inputmode="numeric" min="0" max="${currentRound}" class="mobile-input" id="res-${idx}" oninput="handleResultInput(${idx})">
+                    <div class="player-label ${labelClass}" title="${name}">${name}${labelTag}</div>
+                    <input type="number" pattern="[0-9]*" inputmode="numeric" min="0" max="${currentHandCards}" 
+                           class="mobile-input ${inputClass}" id="res-${idx}" oninput="handleResultInput(${idx}, ${currentHandCards})">
                 </div>`;
         });
     }
 
-    function handleBidInput(playerIdx) {
+    function handleBidInput(playerIdx, maxCards) {
         let inputEl = document.getElementById(`bid-${playerIdx}`);
         let val = inputEl.value;
         if(val === '') return;
         
         let intVal = parseInt(val);
-        if(intVal > currentRound || intVal < 0) {
-            alert(`⚠️ 叫注不能大過 ${currentRound}！`);
+        if(intVal > maxCards || intVal < 0) {
+            alert(`⚠️ 本局每人只有 ${maxCards} 張牌，叫注不能大過 ${maxCards}！`);
             inputEl.value = '';
             return;
         }
-        validateScrewBid();
+        validateScrewBid(maxCards);
     }
 
-    function handleResultInput(playerIdx) {
+    function handleResultInput(playerIdx, maxCards) {
         let inputEl = document.getElementById(`res-${playerIdx}`);
         let val = inputEl.value;
         if(val === '') return;
         
         let intVal = parseInt(val);
-        if(intVal > currentRound || intVal < 0) {
-            alert(`⚠️ 實得墩數不能大過 ${currentRound}！`);
+        if(intVal > maxCards || intVal < 0) {
+            alert(`⚠️ 實得墩數不能大過 ${maxCards}！`);
             inputEl.value = '';
         }
     }
 
-    function validateScrewBid() {
+    function validateScrewBid(maxCards) {
         let dealerIdx = (currentRound - 1) % pCount;
         let screwIdx = (dealerIdx - 1 + pCount) % pCount;
         
@@ -345,16 +427,17 @@
         let enteredCount = 0;
         for(let i=0; i<pCount; i++) {
             if(i !== screwIdx) {
-                let val = document.getElementById(`bid-${i}`).value;
+                let bidEl = document.getElementById(`bid-${i}`);
+                let val = bidEl ? bidEl.value : "";
                 if(val !== '') { sum += parseInt(val); enteredCount++; }
             }
         }
         
-        let forbidden = currentRound - sum;
+        let forbidden = maxCards - sum;
         if(enteredCount === pCount - 1 && forbidden >= 0) {
-            document.getElementById('screw-notice').innerText = `(🎯首攻不准叫 ${forbidden})`;
+            document.getElementById('screw-notice').innerText = `(🎯限制位不准叫 ${forbidden})`;
             let screwInput = document.getElementById(`bid-${screwIdx}`);
-            if(parseInt(screwInput.value) === forbidden) {
+            if(screwInput && parseInt(screwInput.value) === forbidden) {
                 alert(`⚠️ 限制位不准叫 ${forbidden} 墩！`);
                 screwInput.value = '';
             }
@@ -371,7 +454,8 @@
 
     function lockBids() {
         for(let i=0; i<pCount; i++) {
-            if(document.getElementById(`bid-${i}`).value === '') { alert("請先填寫所有玩家的 Bid！"); return; }
+            let bidEl = document.getElementById(`bid-${i}`);
+            if(!bidEl || bidEl.value === '') { alert("請先填寫所有玩家的 Bid！"); return; }
         }
         document.getElementById('section-bid').style.opacity = "0.4";
         document.getElementById('section-bid').style.pointerEvents = "none";
@@ -383,11 +467,13 @@
     }
 
     function submitResults() {
+        let maxCards = ((currentRound - 1) % Math.floor(52 / pCount)) + 1;
         let currentBids = [], currentResults = [], currentScores = [], roundTotals = [];
         let totalResultSum = 0;
 
         for(let i=0; i<pCount; i++) {
-            let rVal = document.getElementById(`res-${i}`).value;
+            let resEl = document.getElementById(`res-${i}`);
+            let rVal = resEl ? resEl.value : "";
             if(rVal === '') { alert("請填寫所有玩家的 Result！"); return; }
             let resInt = parseInt(rVal);
             currentResults.push(resInt);
@@ -395,8 +481,8 @@
             totalResultSum += resInt;
         }
 
-        if(totalResultSum !== currentRound) {
-            alert(`⚠️ 墩數總和必須等於 ${currentRound} 墩！`);
+        if(totalResultSum !== maxCards) {
+            alert(`⚠️ 墩數總和必須等於 ${maxCards} 墩！`);
             return;
         }
 
@@ -417,9 +503,18 @@
             round: currentRound, bids: currentBids, results: currentResults, roundScores: currentScores, runningTotals: roundTotals
         });
 
+        let tempArr = [];
+        for(let i=0; i<pCount; i++) {
+            tempArr.push({ id: i, total: roundTotals[i] });
+        }
+        tempArr.sort((a, b) => b.total - a.total);
+        sortedOrder = tempArr.map(item => item.id);
+
         showLastRoundCard(currentScores);
         renderScoreBoard();
+        
         currentRound++;
+        saveToLocalStorage(); 
         setupRoundUI();
     }
 
@@ -427,9 +522,11 @@
         const card = document.getElementById('last-round-card');
         const list = document.getElementById('last-round-list');
         list.innerHTML = '';
-        players.forEach((name, i) => {
-            let s = scores[i];
-            list.innerHTML += `<div class="history-item"><span>${name} 得到</span> <strong>${s > 0 ? '+' + s : s}</strong></div>`;
+        
+        sortedOrder.forEach((pId) => {
+            let name = initialPlayers[pId];
+            let s = scores[pId];
+            list.innerHTML += `<div class="history-item"><span>${name}</span> <strong>${s > 0 ? '+' + s : s}</strong></div>`;
         });
         card.style.display = 'block';
     }
@@ -437,7 +534,11 @@
     function renderScoreBoard() {
         const thr = document.getElementById('board-th-row');
         thr.innerHTML = `<th class="round-col">局</th>`;
-        players.forEach(name => { thr.innerHTML += `<th>${name}</th>`; });
+        
+        sortedOrder.forEach((pId, rankIdx) => {
+            let rankClass = rankIdx < 3 ? `rank-${rankIdx}` : '';
+            thr.innerHTML += `<th class="${rankClass}">${initialPlayers[pId]}</th>`;
+        });
 
         const tbody = document.getElementById('board-tbody');
         tbody.innerHTML = '';
@@ -449,18 +550,62 @@
 
         scoresHistory.forEach(h => {
             let rowHtml = `<tr><td class="round-col">${h.round}</td>`;
-            for(let i=0; i<pCount; i++) {
-                rowHtml += `<td>${h.runningTotals[i]}<span class="score-detail">(${h.bids[i]}|${h.results[i]})</span></td>`;
-            }
+            sortedOrder.forEach(pId => {
+                rowHtml += `<td>${h.runningTotals[pId]}<span class="score-detail">(${h.bids[pId]}|${h.results[pId]})</span></td>`;
+            });
             rowHtml += `</tr>`;
             tbody.innerHTML += rowHtml;
         });
 
         let lastTotals = scoresHistory[scoresHistory.length - 1].runningTotals;
         let totalHtml = `<tr class="total-row"><td class="round-col">總數</td>`;
-        for(let i=0; i<pCount; i++) { totalHtml += `<td>${lastTotals[i]}</td>`; }
+        sortedOrder.forEach((pId, rankIdx) => { 
+            let rankClass = rankIdx < 3 ? `rank-${rankIdx}` : '';
+            totalHtml += `<td class="${rankClass}">${lastTotals[pId]}</td>`; 
+        });
         totalHtml += `</tr>`;
         tbody.innerHTML += totalHtml;
+    }
+
+    function exportToExcel() {
+        if(scoresHistory.length === 0) {
+            alert("未有任何對局紀錄可以匯出！");
+            return;
+        }
+
+        let csvContent = "局,";
+        sortedOrder.forEach((pId, index) => {
+            csvContent += `${initialPlayers[pId]} (第${index+1}名),`;
+        });
+        csvContent += "\n";
+
+        scoresHistory.forEach(h => {
+            csvContent += `${h.round},`;
+            sortedOrder.forEach(pId => {
+                csvContent += `"${h.runningTotals[pId]} (${h.bids[pId]}|${h.results[pId]})",`;
+            });
+            csvContent += "\n";
+        });
+
+        let lastTotals = scoresHistory[scoresHistory.length - 1].runningTotals;
+        csvContent += "總分數,";
+        sortedOrder.forEach(pId => {
+            csvContent += `${lastTotals[pId]},`;
+        });
+        csvContent += "\n";
+
+        const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        
+        let dateStr = new Date().toISOString().slice(0,10);
+        link.setAttribute("download", `german_bridge_${dateStr}.csv`);
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 </script>
 </body>
