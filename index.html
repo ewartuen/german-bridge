@@ -319,7 +319,7 @@
             let labelClass = isDealer ? 'dealer-highlight' : (isScrew ? 'screw-highlight-txt' : '');
             let inputClass = isDealer ? 'dealer-border' : (isScrew ? 'screw-highlight' : '');
 
-            bidGrid.innerHTML += `<div><div class="player-label ${labelClass}">${name}${labelTag}</div><input type="number" pattern="[0-9]*" class="mobile-input ${inputClass}" id="bid-${idx}" placeholder="0"></div>`;
+            bidGrid.innerHTML += `<div><div class="player-label ${labelClass}">${name}${labelTag}</div><input type="number" pattern="[0-9]*" class="mobile-input ${inputClass}" id="bid-${idx}" placeholder="0" oninput="onBidInput(${idx})"></div>`;
             resGrid.innerHTML += `<div><div class="player-label ${labelClass}">${name}${labelTag}</div><input type="number" pattern="[0-9]*" class="mobile-input ${inputClass}" id="res-${idx}" placeholder="0"></div>`;
         });
 
@@ -331,27 +331,69 @@
         document.getElementById('btn-end-round').disabled = true;
     }
 
-    // 💡 報墩邏輯校驗：爆墩與螺絲限制
+    function getBidValue(i) {
+        let bVal = document.getElementById(`bid-${i}`).value;
+        return bVal === '' ? 0 : parseInt(bVal, 10);
+    }
+
+    function getScrewPlayerIndex() {
+        let dealerIdx = (currentRound - 1) % pCount;
+        return (dealerIdx - 1 + pCount) % pCount;
+    }
+
+    // 螺絲位不能報令全桌總墩剛好等於本局牌數的那個數字（可爆墩，不可「剛好」）
+    function getScrewForbiddenBid() {
+        let maxCards = getCurrentHandCards();
+        let screwIdx = getScrewPlayerIndex();
+        let others = 0;
+        for (let i = 0; i < pCount; i++) {
+            if (i !== screwIdx) others += getBidValue(i);
+        }
+        return maxCards - others;
+    }
+
+    function onBidInput(playerIdx) {
+        let maxCards = getCurrentHandCards();
+        let input = document.getElementById(`bid-${playerIdx}`);
+        let bidNum = input.value === '' ? 0 : parseInt(input.value, 10);
+
+        if (input.value !== '' && (isNaN(bidNum) || bidNum < 0)) {
+            input.value = '';
+            return;
+        }
+        if (bidNum > maxCards) {
+            alert(`單人報墩不能超過本局總牌數 (${maxCards} 張)！`);
+            input.value = '';
+            return;
+        }
+
+        let screwIdx = getScrewPlayerIndex();
+        let forbidden = getScrewForbiddenBid();
+        let screwInput = document.getElementById(`bid-${screwIdx}`);
+        if (!screwInput || screwInput.value === '') return;
+
+        let screwBid = parseInt(screwInput.value, 10);
+        if (forbidden >= 0 && forbidden <= maxCards && screwBid === forbidden) {
+            alert(`螺絲位不能報 ${forbidden}：全桌總報墩不能剛好等於本局牌數 (${maxCards})。請改報其他數字（可以爆墩）。`);
+            screwInput.value = '';
+        }
+    }
+
+    // 💡 報墩邏輯校驗：單人不可超本局牌數；全桌不可剛好等於牌數（可少可爆）
     function lockBids() {
         let maxCards = getCurrentHandCards();
         let totalBid = 0;
 
         for(let i=0; i<pCount; i++) {
-            let bVal = document.getElementById(`bid-${i}`).value;
-            let bidNum = bVal === '' ? 0 : parseInt(bVal);
+            let bidNum = getBidValue(i);
 
-            if(bidNum < 0) { alert(`玩家 ${initialPlayers[i]} 的報墩不能為負數！`); return; }
+            if(bidNum < 0 || isNaN(bidNum)) { alert(`玩家 ${initialPlayers[i]} 的報墩不能為負數！`); return; }
             if(bidNum > maxCards) { alert(`單人報墩 (${bidNum}) 不能超過本局總牌數 (${maxCards} 張)！`); return; }
             totalBid += bidNum;
         }
 
-        if(totalBid > maxCards) {
-            alert(`全桌總報墩 (${totalBid}) 超過本局牌數 (${maxCards} 張)！請重新確認。`);
-            return;
-        }
-
         if(totalBid === maxCards) {
-            alert(`德國橋牌規則：全桌報墩總數 (${totalBid}) 不能『剛好等於』牌數 (${maxCards} 張)！請螺絲位或最後玩家調整報墩。`);
+            alert(`德國橋牌規則：全桌報墩總數 (${totalBid}) 不能『剛好等於』牌數 (${maxCards} 張)！螺絲位必須改報，令總數少過或大過本局牌數。`);
             return;
         }
 
