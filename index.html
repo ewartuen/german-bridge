@@ -235,6 +235,8 @@
             qrTitle: "玩家唯讀觀看 QR Code",
             qrHelp: "請確保房主手機網頁開著。玩家掃描一次後即可連線，重開新局也無需重新掃描。",
             closeText: "關閉",
+            peerWaiting: "正在與 P2P 伺服器建立房號，請稍候再試...",
+            peerError: "P2P 連線失敗，請重新整理網頁再試。 (Error: {type})",
             editModalTitle: "修改記錄",
             saveEdit: "儲存變更並重算",
             cancelEdit: "取消",
@@ -311,6 +313,8 @@
             qrTitle: "Player read-only QR code",
             qrHelp: "Make sure the host keeps the page open on their phone. Players can scan once and sync automatically. No re-scan needed after a reset.",
             closeText: "Close",
+            peerWaiting: "Connecting to the P2P server to create a room. Please wait...",
+            peerError: "P2P connection failed. Please refresh the page and try again. (Error: {type})",
             editModalTitle: "Edit record",
             saveEdit: "Save changes and recalc",
             cancelEdit: "Cancel",
@@ -387,6 +391,8 @@
             qrTitle: "玩家只读观看 QR Code",
             qrHelp: "请确保房主手机网页开着。玩家扫描一次后即可连线，重开新局也无需重新扫描。",
             closeText: "关闭",
+            peerWaiting: "正在与 P2P 服务器建立房号，请稍候再试...",
+            peerError: "P2P 连接失败，请重新整理网页再试。 (Error: {type})",
             editModalTitle: "修改记录",
             saveEdit: "保存变更并重算",
             cancelEdit: "取消",
@@ -437,6 +443,7 @@
     let connections = [];
     let hostConn = null;
     let currentLang = 'zh-HK';
+    let peerRetryCount = 0;
 
     let pCount = 4, currentRound = 1;
     let initialPlayers = [], sortedOrder = [], scoresHistory = [];
@@ -597,10 +604,43 @@
     };
 
     function initHostP2P() {
-        peer = new Peer();
+        const peerConfig = {
+            host: '0.peerjs.com',
+            port: 443,
+            secure: true,
+            debug: 2
+        };
+
+        if (peer) {
+            peer.destroy();
+        }
+
+        peer = new Peer(peerConfig);
+
+        peer.on('open', (id) => {
+            console.log('P2P Room ID established:', id);
+            peerRetryCount = 0;
+        });
+
         peer.on('connection', (conn) => {
             connections.push(conn);
             conn.on('open', () => broadcastData());
+        });
+
+        peer.on('error', (err) => {
+            console.error('PeerJS Connection Error:', err);
+            const retryableTypes = ['disconnected', 'network', 'server-error', 'peer-unavailable'];
+            const t = translations[currentLang] || translations['zh-HK'];
+
+            if (retryableTypes.includes(err.type) && peerRetryCount < 2) {
+                peerRetryCount += 1;
+                console.warn(`Retrying PeerJS host setup (${peerRetryCount}/2) after error:`, err.type);
+                setTimeout(() => initHostP2P(), 1500);
+                return;
+            }
+
+            const message = t.peerError.replace('{type}', err.type || 'unknown');
+            alert(message);
         });
     }
 
@@ -977,8 +1017,9 @@
     }
 
     function showQRCodeModal() {
+        const t = translations[currentLang] || translations['zh-HK'];
         if (!peer || !peer.id) {
-            alert("正在與 P2P 伺服器建立房號，請稍候再試...");
+            alert(t.peerWaiting);
             return;
         }
         let viewUrl = getReadOnlyURL();
@@ -992,8 +1033,9 @@
     function closeQRModal() { document.getElementById('qr-modal').style.display = 'none'; }
 
     function copyReadOnlyLink() {
+        const t = translations[currentLang] || translations['zh-HK'];
         if (!peer || !peer.id) {
-            alert("正在與 P2P 伺服器建立房號，請稍候再試...");
+            alert(t.peerWaiting);
             return;
         }
         navigator.clipboard.writeText(getReadOnlyURL()).then(() => {
