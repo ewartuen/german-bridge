@@ -52,6 +52,12 @@
         .score-board-table td { padding: 14px 4px; font-size: 14px; border-bottom: 1px solid var(--border); background: var(--surface); }
         
         .edit-round-btn { background: #333; color: var(--primary); border: 1px solid var(--primary); padding: 2px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; margin-left: 4px; }
+        .manage-box { background: #1a1a1a; border: 1px dashed var(--primary); padding: 15px; border-radius: 8px; margin: 10px 0 15px 0; display: none; }
+        .drag-list { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+        .drag-item { display: flex; gap: 8px; align-items: center; background: #2d2d2d; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); }
+        .drag-item input[type="text"] { flex: 1; min-width: 0; background: #222; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 4px; font-size: 14px; }
+        .seat-btn { background: #333; color: #fff; border: 1px solid #555; border-radius: 4px; padding: 6px 10px; cursor: pointer; font-size: 14px; }
+        .delete-p-btn { background: none; border: none; cursor: pointer; font-size: 16px; padding: 0 4px; }
         
         .modal { display: none; position: fixed; z-index: 200; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); }
         .modal-content { background: var(--surface); margin: 15% auto; padding: 20px; border-radius: 8px; width: 90%; max-width: 450px; text-align: center; }
@@ -97,6 +103,17 @@
                     <div class="dealer-tip" id="display-dealer-name">👑 莊家: --</div>
                 </div>
 
+                <button class="action-btn btn-secondary" id="btn-toggle-manage" onclick="toggleManagePlayers()">👥 調整玩家次序 / 改名</button>
+                <div id="manage-players-box" class="manage-box">
+                    <h3 style="font-size:14px; color:var(--primary);">管理玩家（改名、上下移動座位；完成一局後亦可重排）</h3>
+                    <p style="font-size:12px; color:var(--text-muted); margin:8px 0 0;">座位由上至下為順時針順序。改名唔會清分數；調位會跟住人一齊搬分數。</p>
+                    <div class="drag-list" id="manage-drag-list"></div>
+                    <div style="display:flex; gap:8px; margin-top:10px;">
+                        <input type="text" id="new-player-name" placeholder="輸入新玩家名字" style="flex:1; padding:10px; background:#2d2d2d; border:1px solid var(--border); color:#fff; border-radius:6px; font-size:14px;">
+                        <button class="action-btn" style="width:auto; margin:0; padding:10px 14px;" onclick="addNewPlayer()">➕ 新增</button>
+                    </div>
+                </div>
+
                 <div id="section-bid">
                     <div style="color:var(--text-muted); font-size:14px; margin-bottom:8px;">預計取得墩數 (報墩) <span style="font-size:12px; color:#aaa;">(未填寫預設為 0)</span></div>
                     <div class="inputs-grid" id="grid-bid-inputs"></div>
@@ -118,9 +135,12 @@
 
         <!-- 積分板面板 -->
         <div id="board-panel" class="panel">
-            <div id="admin-tools" style="margin-bottom:12px; display:flex; gap:8px;">
-                <button class="action-btn btn-secondary" style="padding:10px; font-size:13px; margin:0;" onclick="showQRCodeModal()">📱 顯示唯讀 QR Code</button>
-                <button class="action-btn btn-secondary" style="padding:10px; font-size:13px; margin:0;" onclick="copyReadOnlyLink()">🔗 複製唯讀連結</button>
+            <div id="admin-tools" style="margin-bottom:12px; display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="action-btn btn-secondary" style="padding:10px; font-size:13px; margin:0; flex:1;" onclick="showQRCodeModal()">📱 顯示唯讀 QR Code</button>
+                <button class="action-btn btn-secondary" style="padding:10px; font-size:13px; margin:0; flex:1;" onclick="copyReadOnlyLink()">🔗 複製唯讀連結</button>
+            </div>
+            <div id="export-tools" style="margin-bottom:12px;">
+                <button class="action-btn btn-success" style="padding:10px; font-size:13px; margin:0;" onclick="exportToExcel()">📊 匯出 Excel 檔</button>
             </div>
             <div class="table-responsive-wrapper">
                 <table class="score-board-table">
@@ -165,6 +185,7 @@
     let pCount = 4, currentRound = 1;
     let initialPlayers = [], sortedOrder = [], scoresHistory = [];
     let editingRoundIndex = -1;
+    let dragSrcIndex = null;
 
     window.onload = function() {
         initPlayerInputs();
@@ -551,6 +572,163 @@
     }
 
     function resetCurrentRound() { setupRoundUI(); }
+
+    function toggleManagePlayers() {
+        const box = document.getElementById('manage-players-box');
+        if (box.style.display === 'block') {
+            box.style.display = 'none';
+        } else {
+            box.style.display = 'block';
+            renderManagePlayers();
+        }
+    }
+
+    function renderManagePlayers() {
+        const list = document.getElementById('manage-drag-list');
+        list.innerHTML = '';
+        initialPlayers.forEach((name, i) => {
+            list.innerHTML += `
+                <div class="drag-item" draggable="true"
+                     ondragstart="handleDragStart(event, ${i})"
+                     ondragover="handleDragOver(event)"
+                     ondrop="handleDrop(event, ${i})">
+                    <button type="button" class="seat-btn" onclick="movePlayer(${i}, -1)" ${i === 0 ? 'disabled' : ''}>↑</button>
+                    <button type="button" class="seat-btn" onclick="movePlayer(${i}, 1)" ${i === pCount - 1 ? 'disabled' : ''}>↓</button>
+                    <input type="text" value="${name.replace(/"/g, '&quot;')}" onchange="renamePlayer(${i}, this.value)">
+                    <button type="button" class="delete-p-btn" onclick="deletePlayer(${i})" title="移除玩家">❌</button>
+                </div>`;
+        });
+    }
+
+    function afterRosterChange() {
+        pCount = initialPlayers.length;
+        if (scoresHistory.length === 0) {
+            sortedOrder = [];
+            for (let i = 0; i < pCount; i++) sortedOrder.push(i);
+        } else {
+            recalculateAllScores();
+        }
+        renderManagePlayers();
+        setupRoundUI();
+        renderScoreBoard();
+        broadcastData();
+    }
+
+    function swapPlayerSlots(i, j) {
+        [initialPlayers[i], initialPlayers[j]] = [initialPlayers[j], initialPlayers[i]];
+        scoresHistory.forEach(h => {
+            [h.bids[i], h.bids[j]] = [h.bids[j], h.bids[i]];
+            [h.results[i], h.results[j]] = [h.results[j], h.results[i]];
+        });
+    }
+
+    function handleDragStart(e, index) {
+        dragSrcIndex = index;
+        e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleDragOver(e) { e.preventDefault(); }
+
+    function handleDrop(e, targetIndex) {
+        e.preventDefault();
+        if (dragSrcIndex === null || dragSrcIndex === targetIndex) return;
+        const step = dragSrcIndex < targetIndex ? 1 : -1;
+        for (let i = dragSrcIndex; i !== targetIndex; i += step) swapPlayerSlots(i, i + step);
+        dragSrcIndex = null;
+        afterRosterChange();
+    }
+
+    function movePlayer(index, dir) {
+        let target = index + dir;
+        if (target < 0 || target >= pCount) return;
+        swapPlayerSlots(index, target);
+        afterRosterChange();
+    }
+
+    function renamePlayer(index, newName) {
+        let name = (newName || '').trim();
+        if (!name) {
+            renderManagePlayers();
+            return;
+        }
+        initialPlayers[index] = name;
+        setupRoundUI();
+        renderScoreBoard();
+        broadcastData();
+    }
+
+    function deletePlayer(index) {
+        if (initialPlayers.length <= 2) {
+            alert('最少要保留 2 位玩家！');
+            return;
+        }
+        if (scoresHistory.length > 0 && !confirm(`確定移除「${initialPlayers[index]}」？過往局數入面呢個人嘅分數都會一齊刪除。`)) return;
+        initialPlayers.splice(index, 1);
+        scoresHistory.forEach(h => {
+            h.bids.splice(index, 1);
+            h.results.splice(index, 1);
+        });
+        afterRosterChange();
+    }
+
+    function addNewPlayer() {
+        const input = document.getElementById('new-player-name');
+        let name = input.value.trim();
+        if (!name) return;
+        initialPlayers.push(name);
+        scoresHistory.forEach(h => {
+            h.bids.push(0);
+            h.results.push(0);
+        });
+        input.value = '';
+        afterRosterChange();
+    }
+
+    function csvCell(value) {
+        let s = String(value ?? '');
+        if (/[",\n]/.test(s)) s = `"${s.replace(/"/g, '""')}"`;
+        return s;
+    }
+
+    function exportToExcel() {
+        if (scoresHistory.length === 0) {
+            alert('尚未有局數記錄可匯出。請先完成至少一局。');
+            return;
+        }
+        let order = sortedOrder.length === pCount ? sortedOrder : [...Array(pCount).keys()];
+        let header = ['局'];
+        order.forEach((pId, rank) => {
+            header.push(`${initialPlayers[pId]} (第${rank + 1}名)`);
+        });
+        let lines = [header.map(csvCell).join(',')];
+
+        scoresHistory.forEach(h => {
+            let row = [h.round];
+            order.forEach(pId => {
+                let bid = h.bids[pId] ?? '-';
+                let res = h.results[pId] ?? '-';
+                let tot = h.runningTotals ? h.runningTotals[pId] : '';
+                row.push(`${tot} (${bid}|${res})`);
+            });
+            lines.push(row.map(csvCell).join(','));
+        });
+
+        let last = scoresHistory[scoresHistory.length - 1];
+        let totalRow = ['總分數'];
+        order.forEach(pId => totalRow.push(last.runningTotals[pId]));
+        lines.push(totalRow.map(csvCell).join(','));
+
+        const csvContent = lines.join('\r\n');
+        const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `german_bridge_${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
 </script>
 </body>
 </html>
