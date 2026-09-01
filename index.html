@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>德國橋牌智能計分板 | German Bridge Scoreboard</title>
-    <!-- 引入 PeerJS (P2P套件) 與 QR Code SDK -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
@@ -40,10 +39,11 @@
         input[type="number"].dealer-border { border-color: var(--success) !important; background: #162a27; }
         input[type="number"].screw-highlight { border-color: #f1c40f !important; background: #332b15; }
         
-        .action-btn { width: 100%; background-color: var(--primary); color: #000; padding: 16px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin: 10px 0; }
+        .action-btn { width: 100%; background-color: var(--primary); color: #000; padding: 16px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin: 8px 0; }
         .action-btn:disabled { background-color: #444; color: #888; }
         .action-btn.btn-secondary { background-color: #333; color: #fff; border: 1px solid #444; }
         .action-btn.btn-warning { background-color: #f39c12; color: #000; }
+        .action-btn.btn-danger { background-color: #e74c3c; color: #fff; }
         .action-btn.btn-success { background-color: var(--success); color: #000; }
         
         .table-responsive-wrapper { width: 100%; overflow-x: auto; max-height: 75vh; } 
@@ -88,7 +88,7 @@
                 </div>
                 <label>玩家名字 (順時針座位)</label>
                 <div class="names-grid" id="names-fields-box"></div>
-                <button class="action-btn" onclick="startNewGame()">建立新對局 (P2P 直連模式)</button>
+                <button class="action-btn" onclick="startNewGame()">建立新對局</button>
             </div>
 
             <div id="game-play-area" style="display: none;">
@@ -100,15 +100,19 @@
                 <div id="section-bid">
                     <div style="color:var(--text-muted); font-size:14px; margin-bottom:8px;">預計取得墩數 (報墩) <span style="font-size:12px; color:#aaa;">(未填寫預設為 0)</span></div>
                     <div class="inputs-grid" id="grid-bid-inputs"></div>
-                    <button class="action-btn" id="btn-start-round" onclick="lockBids()">開始本局</button>
+                    <button class="action-btn" id="btn-start-round" onclick="lockBids()">鎖定報墩並開始</button>
                 </div>
 
                 <div id="section-result" style="opacity: 0.4; pointer-events: none;">
                     <div style="color:var(--text-muted); font-size:14px; margin-bottom:8px;">實際贏取墩數 (勝墩) <span style="font-size:12px; color:#aaa;">(未填寫預設為 0)</span></div>
                     <div class="inputs-grid" id="grid-result-inputs"></div>
-                    <button class="action-btn" id="btn-end-round" onclick="submitResults()" disabled>結束本局</button>
+                    <button class="action-btn" id="btn-end-round" onclick="submitResults()" disabled>結束本局並結算</button>
                 </div>
-                <button class="action-btn btn-warning" onclick="resetCurrentRound()">↩️ 重設本局輸入</button>
+                
+                <div style="display:flex; gap:8px; margin-top:10px;">
+                    <button class="action-btn btn-warning" style="flex:1;" onclick="resetCurrentRound()">↩️ 重設本局輸入</button>
+                    <button class="action-btn btn-danger" style="flex:1;" onclick="restartEntireGame()">🧹 清空分數重開新局</button>
+                </div>
             </div>
         </div>
 
@@ -143,7 +147,7 @@
     <div id="qr-modal" class="modal">
         <div class="modal-content">
             <h3 style="color:var(--primary);">玩家唯讀觀看 QR Code</h3>
-            <p style="font-size:12px; color:var(--text-muted); margin-top:5px;">請確保房主手機不要關閉網頁。其他玩家掃描後將直接點對點連線至房主手機同步分數。</p>
+            <p style="font-size:12px; color:var(--text-muted); margin-top:5px;">請確保房主手機網頁開著。玩家掃描一次後即可連線，重開新局也無需重新掃描。</p>
             <div id="qrcode-box"></div>
             <button class="action-btn btn-secondary" style="margin:0;" onclick="closeQRModal()">關閉</button>
         </div>
@@ -155,8 +159,8 @@
     const hostPeerId = urlParams.get('host');
 
     let peer = null;
-    let connections = []; // 房主端：維護所有連線中的玩家
-    let hostConn = null;  // 玩家端：與房主的連線
+    let connections = [];
+    let hostConn = null;
 
     let pCount = 4, currentRound = 1;
     let initialPlayers = [], sortedOrder = [], scoresHistory = [];
@@ -173,25 +177,19 @@
         }
     };
 
-    // 初始化房主端 P2P
     function initHostP2P() {
         peer = new Peer();
         peer.on('connection', (conn) => {
             connections.push(conn);
-            conn.on('open', () => {
-                // 玩家一連進來，立即把當前最新分數傳過去
-                broadcastData();
-            });
+            conn.on('open', () => broadcastData());
         });
     }
 
-    // 初始化玩家端 P2P
     function initClientP2P(targetHostId) {
         peer = new Peer();
         peer.on('open', () => {
             hostConn = peer.connect(targetHostId);
             hostConn.on('data', (data) => {
-                // 接收到房主傳來的即時數據，更新畫面
                 pCount = data.pCount;
                 currentRound = data.currentRound;
                 initialPlayers = data.initialPlayers;
@@ -205,7 +203,6 @@
         });
     }
 
-    // 房主廣播數據給所有已連線的玩家
     function broadcastData() {
         if (isReadOnly || !connections.length) return;
         const payload = {
@@ -222,7 +219,7 @@
 
     function checkModeUI() {
         if (isReadOnly) {
-            document.getElementById('role-notice').innerText = "👀 權限：玩家唯讀模式（直連房主手機，請勿關閉房主網頁）";
+            document.getElementById('role-notice').innerText = "👀 權限：玩家唯讀模式（同步房主數據中）";
             document.getElementById('role-notice').style.background = "#1a2634";
             document.getElementById('role-notice').style.color = "#3498db";
             document.getElementById('input-panel').style.display = "none";
@@ -273,6 +270,23 @@
         broadcastData();
     }
 
+    // 💡 保持房間 ID / QR Code，僅清空分數重新開始
+    function restartEntireGame() {
+        if(!confirm("確定要清空所有分數重開新局嗎？（房間 QR Code 將保持不變，其他玩家無需重新掃描）")) return;
+        
+        scoresHistory = [];
+        currentRound = 1;
+        
+        // 重設排名順序為預設
+        sortedOrder = [];
+        for(let i=0; i<pCount; i++) sortedOrder.push(i);
+
+        setupRoundUI();
+        renderScoreBoard();
+        broadcastData();
+        alert("已重開新局！所有分數已清空。");
+    }
+
     function getRoundSeatOrder(rd) {
         let dealerIdx = (rd - 1) % pCount;
         let order = [];
@@ -280,9 +294,13 @@
         return order;
     }
 
-    function setupRoundUI() {
+    function getCurrentHandCards() {
         let maxCards = Math.floor(52 / pCount);
-        let currentHandCards = ((currentRound - 1) % maxCards) + 1;
+        return ((currentRound - 1) % maxCards) + 1;
+    }
+
+    function setupRoundUI() {
+        let currentHandCards = getCurrentHandCards();
         let dealerIdx = (currentRound - 1) % pCount;
         let screwIdx = (dealerIdx - 1 + pCount) % pCount;
 
@@ -297,7 +315,7 @@
         seatOrder.forEach((idx) => {
             let name = initialPlayers[idx];
             let isDealer = (idx === dealerIdx), isScrew = (idx === screwIdx);
-            let labelTag = isDealer ? ' (莊)' : (isScrew ? ' (🎯)' : '');
+            let labelTag = isDealer ? ' (莊)' : (isScrew ? ' (🎯螺絲)' : '');
             let labelClass = isDealer ? 'dealer-highlight' : (isScrew ? 'screw-highlight-txt' : '');
             let inputClass = isDealer ? 'dealer-border' : (isScrew ? 'screw-highlight' : '');
 
@@ -313,7 +331,30 @@
         document.getElementById('btn-end-round').disabled = true;
     }
 
+    // 💡 報墩邏輯校驗：爆墩與螺絲限制
     function lockBids() {
+        let maxCards = getCurrentHandCards();
+        let totalBid = 0;
+
+        for(let i=0; i<pCount; i++) {
+            let bVal = document.getElementById(`bid-${i}`).value;
+            let bidNum = bVal === '' ? 0 : parseInt(bVal);
+
+            if(bidNum < 0) { alert(`玩家 ${initialPlayers[i]} 的報墩不能為負數！`); return; }
+            if(bidNum > maxCards) { alert(`單人報墩 (${bidNum}) 不能超過本局總牌數 (${maxCards} 張)！`); return; }
+            totalBid += bidNum;
+        }
+
+        if(totalBid > maxCards) {
+            alert(`全桌總報墩 (${totalBid}) 超過本局牌數 (${maxCards} 張)！請重新確認。`);
+            return;
+        }
+
+        if(totalBid === maxCards) {
+            alert(`德國橋牌規則：全桌報墩總數 (${totalBid}) 不能『剛好等於』牌數 (${maxCards} 張)！請螺絲位或最後玩家調整報墩。`);
+            return;
+        }
+
         document.getElementById('section-bid').style.opacity = "0.4";
         document.getElementById('section-bid').style.pointerEvents = "none";
         document.getElementById('btn-start-round').style.display = "none";
@@ -322,19 +363,34 @@
         document.getElementById('btn-end-round').disabled = false;
     }
 
+    // 💡 勝墩邏輯校驗：勝墩總數必須等於總牌數
     function submitResults() {
-        let bids = [], results = [];
+        let maxCards = getCurrentHandCards();
+        let bids = [], results = [], totalResult = 0;
+
         for(let i=0; i<pCount; i++) {
             let bVal = document.getElementById(`bid-${i}`).value;
             let rVal = document.getElementById(`res-${i}`).value;
-            bids.push(bVal === '' ? 0 : parseInt(bVal));
-            results.push(rVal === '' ? 0 : parseInt(rVal));
+
+            let bNum = bVal === '' ? 0 : parseInt(bVal);
+            let rNum = rVal === '' ? 0 : parseInt(rVal);
+
+            if(rNum < 0) { alert(`玩家 ${initialPlayers[i]} 的勝墩不能為負數！`); return; }
+            bids.push(bNum);
+            results.push(rNum);
+            totalResult += rNum;
+        }
+
+        if(totalResult !== maxCards) {
+            alert(`全桌實際贏取總勝墩 (${totalResult}) 不等於本局總牌數 (${maxCards} 張)！請檢查勝墩輸入。`);
+            return;
         }
 
         scoresHistory.push({ round: currentRound, bids: bids, results: results });
         recalculateAllScores();
         currentRound++;
         setupRoundUI();
+        renderScoreBoard(); // 桌面版即時渲染
         broadcastData();
     }
 
