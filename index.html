@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -9,86 +10,501 @@
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        :root { --bg-dark: #121212; --surface: #1e1e1e; --primary: #bb86fc; --text-main: #ffffff; --text-muted: #a0a0a0; --border: #2c2c2c; --success: #03dac6; --error: #cf6679; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft JhengHei", sans-serif; }
-        body { background-color: var(--bg-dark); color: var(--text-main); font-size: 16px; padding-bottom: 30px; }
-        header { background-color: var(--surface); padding: 15px; text-align: center; border-bottom: 1px solid var(--border); }
-        .lang-switcher { display: flex; justify-content: flex-end; max-width: 1400px; margin: 0 auto 10px auto; width: 100%; }
-        .lang-btn { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 13px; margin-left: 12px; padding: 4px 8px; border-radius: 4px; transition: all 0.2s; font-weight: 500; }
-        .lang-btn:hover { background-color: rgba(187, 134, 252, 0.1); }
-        .lang-btn.active { background-color: var(--primary); color: #000; font-weight: bold; }
-        .role-banner { background: #332b15; color: #f1c40f; font-size: 12px; text-align: center; padding: 6px; font-weight: bold; }
-        .gb-doc-section { max-width: 1400px; width: calc(100% - 32px); margin: 20px auto 30px auto; padding: 10px 20px; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); color: var(--text-main); text-align: left; -webkit-user-select: text; user-select: text; }
-        .gb-details { border-bottom: 1px solid var(--border); padding: 14px 0; }
-        .gb-details:last-child { border-bottom: none; }
-        .gb-summary { font-size: 15px; font-weight: 600; color: var(--primary); cursor: pointer; outline: none; list-style: none; display: flex; align-items: center; justify-content: space-between; user-select: none; }
-        .gb-summary::-webkit-details-marker { display: none; }
-        .gb-summary::after { content: '＋'; font-size: 14px; color: var(--primary); transition: transform 0.2s ease; }
-        .gb-details[open] .gb-summary::after { content: '－'; }
-        .gb-details-content { padding-top: 12px; font-size: 13.5px; line-height: 1.6; }
-        .gb-details-content h3 { font-size: 14px; color: var(--text-main); margin: 14px 0 6px 0; font-weight: bold; }
-        .gb-details-content p, .gb-details-content li { color: var(--text-muted); font-size: 13.5px; margin-bottom: 6px; }
-        .gb-details-content ul { padding-left: 20px; margin-top: 4px; margin-bottom: 10px; }
-        
-        .nav-tabs { display: flex; background-color: var(--surface); border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 100; }
-        .tab-btn { flex: 1; padding: 15px 0; text-align: center; background: none; border: none; color: var(--text-muted); font-size: 16px; font-weight: bold; cursor: pointer; position: relative; }
-        .tab-btn.active { color: var(--primary); }
-        .tab-btn.active::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 3px; background-color: var(--primary); }
-        
-        .main-container { padding: 16px; display: block; }
-        .panel { display: none; }
-        .panel.active { display: block; }
-        
-        .setup-card { background: var(--surface); padding: 16px; border-radius: 8px; margin-bottom: 16px; }
-        select, input[type="text"], input[type="number"].setup-input { width: 100%; background: #2d2d2d; border: 1px solid var(--border); color: #fff; padding: 12px; border-radius: 6px; font-size: 16px; outline: none; }
-        .names-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
-        
-        .game-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .round-title { font-size: 22px; font-weight: bold; }
-        .dealer-tip { font-size: 14px; color: var(--success); background: rgba(3,218,198,0.1); padding: 4px 8px; border-radius: 4px; font-weight: bold; }
-        
-        .inputs-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; margin-bottom: 15px; }
-        .player-label { font-size: 14px; font-weight: 500; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 6px; }
-        .player-label.dealer-highlight { color: var(--success); font-weight: bold; }
-        .player-label.screw-highlight-txt { color: #f1c40f; font-weight: bold; }
-        
-        input[type="number"].mobile-input { width: 100%; background: #252525; border: 1px solid var(--border); color: white; text-align: center; padding: 15px 0; font-size: 20px; font-weight: bold; border-radius: 8px; }
-        input[type="number"].dealer-border { border-color: var(--success) !important; background: #162a27; }
-        input[type="number"].screw-highlight { border-color: #f1c40f !important; background: #332b15; }
-        
-        .action-btn { width: 100%; background-color: var(--primary); color: #000; padding: 16px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin: 8px 0; }
-        .action-btn:disabled { background-color: #444; color: #888; }
-        .action-btn.btn-secondary { background-color: #333; color: #fff; border: 1px solid #444; }
-        .action-btn.btn-warning { background-color: #f39c12; color: #000; }
-        .action-btn.btn-danger { background-color: #e74c3c; color: #fff; }
-        .action-btn.btn-success { background-color: var(--success); color: #000; }
-        
-        .table-responsive-wrapper { width: 100%; overflow-x: auto; max-height: 75vh; } 
-        .score-board-table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: center; }
-        .score-board-table th { position: sticky; top: 0; background: #1e1e1e; color: var(--text-muted); padding: 14px 6px; font-size: 13px; border-bottom: 2px solid var(--border); z-index: 10; }
-        .score-board-table td { padding: 14px 4px; font-size: 14px; border-bottom: 1px solid var(--border); background: var(--surface); }
-        
-        .edit-round-btn { background: #333; color: var(--primary); border: 1px solid var(--primary); padding: 2px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; margin-left: 4px; }
-        .manage-box { background: #1a1a1a; border: 1px dashed var(--primary); padding: 15px; border-radius: 8px; margin: 10px 0 15px 0; display: none; }
-        .drag-list { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
-        .drag-item { display: flex; gap: 8px; align-items: center; background: #2d2d2d; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); }
-        .drag-item input[type="text"] { flex: 1; min-width: 0; background: #222; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 4px; font-size: 14px; }
-        .seat-btn { background: #333; color: #fff; border: 1px solid #555; border-radius: 4px; padding: 6px 10px; cursor: pointer; font-size: 14px; }
-        .delete-p-btn { background: none; border: none; cursor: pointer; font-size: 16px; padding: 0 4px; }
-        
-        .modal { display: none; position: fixed; z-index: 200; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); }
-        .modal-content { background: var(--surface); margin: 15% auto; padding: 20px; border-radius: 8px; width: 90%; max-width: 450px; text-align: center; }
-        #qrcode-box { display: flex; justify-content: center; margin: 20px 0; background: white; padding: 15px; border-radius: 8px; }
+        :root {
+            --bg-dark: #121212;
+            --surface: #1e1e1e;
+            --primary: #bb86fc;
+            --text-main: #ffffff;
+            --text-muted: #a0a0a0;
+            --border: #2c2c2c;
+            --success: #03dac6;
+            --error: #cf6679;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft JhengHei", sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-size: 16px;
+            padding-bottom: 30px;
+        }
+
+        header {
+            background-color: var(--surface);
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .lang-switcher {
+            display: flex;
+            justify-content: flex-end;
+            max-width: 1400px;
+            margin: 0 auto 10px auto;
+            width: 100%;
+        }
+
+        .lang-btn {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            font-size: 13px;
+            margin-left: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .lang-btn:hover {
+            background-color: rgba(187, 134, 252, 0.1);
+        }
+
+        .lang-btn.active {
+            background-color: var(--primary);
+            color: #000;
+            font-weight: bold;
+        }
+
+        .role-banner {
+            background: #332b15;
+            color: #f1c40f;
+            font-size: 12px;
+            text-align: center;
+            padding: 6px;
+            font-weight: bold;
+        }
+
+        .gb-doc-section {
+            max-width: 1400px;
+            width: calc(100% - 32px);
+            margin: 20px auto 30px auto;
+            padding: 10px 20px;
+            background: var(--surface);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            text-align: left;
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
+        .gb-details {
+            border-bottom: 1px solid var(--border);
+            padding: 14px 0;
+        }
+
+        .gb-details:last-child {
+            border-bottom: none;
+        }
+
+        .gb-summary {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--primary);
+            cursor: pointer;
+            outline: none;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            user-select: none;
+        }
+
+        .gb-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .gb-summary::after {
+            content: '＋';
+            font-size: 14px;
+            color: var(--primary);
+            transition: transform 0.2s ease;
+        }
+
+        .gb-details[open] .gb-summary::after {
+            content: '－';
+        }
+
+        .gb-details-content {
+            padding-top: 12px;
+            font-size: 13.5px;
+            line-height: 1.6;
+        }
+
+        .gb-details-content h3 {
+            font-size: 14px;
+            color: var(--text-main);
+            margin: 14px 0 6px 0;
+            font-weight: bold;
+        }
+
+        .gb-details-content p,
+        .gb-details-content li {
+            color: var(--text-muted);
+            font-size: 13.5px;
+            margin-bottom: 6px;
+        }
+
+        .gb-details-content ul {
+            padding-left: 20px;
+            margin-top: 4px;
+            margin-bottom: 10px;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background-color: var(--surface);
+            border-bottom: 2px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 15px 0;
+            text-align: center;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: var(--primary);
+        }
+
+        .main-container {
+            padding: 16px;
+            display: block;
+        }
+
+        .panel {
+            display: none;
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        .setup-card {
+            background: var(--surface);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        select,
+        input[type="text"],
+        input[type="number"].setup-input {
+            width: 100%;
+            background: #2d2d2d;
+            border: 1px solid var(--border);
+            color: #fff;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .names-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .round-title {
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .dealer-tip {
+            font-size: 14px;
+            color: var(--success);
+            background: rgba(3, 218, 198, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .inputs-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .player-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 6px;
+        }
+
+        .player-label.dealer-highlight {
+            color: var(--success);
+            font-weight: bold;
+        }
+
+        .player-label.screw-highlight-txt {
+            color: #f1c40f;
+            font-weight: bold;
+        }
+
+        input[type="number"].mobile-input {
+            width: 100%;
+            background: #252525;
+            border: 1px solid var(--border);
+            color: white;
+            text-align: center;
+            padding: 15px 0;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 8px;
+        }
+
+        input[type="number"].dealer-border {
+            border-color: var(--success) !important;
+            background: #162a27;
+        }
+
+        input[type="number"].screw-highlight {
+            border-color: #f1c40f !important;
+            background: #332b15;
+        }
+
+        .action-btn {
+            width: 100%;
+            background-color: var(--primary);
+            color: #000;
+            padding: 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 8px 0;
+        }
+
+        .action-btn:disabled {
+            background-color: #444;
+            color: #888;
+        }
+
+        .action-btn.btn-secondary {
+            background-color: #333;
+            color: #fff;
+            border: 1px solid #444;
+        }
+
+        .action-btn.btn-warning {
+            background-color: #f39c12;
+            color: #000;
+        }
+
+        .action-btn.btn-danger {
+            background-color: #e74c3c;
+            color: #fff;
+        }
+
+        .action-btn.btn-success {
+            background-color: var(--success);
+            color: #000;
+        }
+
+        .table-responsive-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            max-height: 75vh;
+        }
+
+        .score-board-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            text-align: center;
+        }
+
+        .score-board-table th {
+            position: sticky;
+            top: 0;
+            background: #1e1e1e;
+            color: var(--text-muted);
+            padding: 14px 6px;
+            font-size: 13px;
+            border-bottom: 2px solid var(--border);
+            z-index: 10;
+        }
+
+        .score-board-table td {
+            padding: 14px 4px;
+            font-size: 14px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface);
+        }
+
+        .edit-round-btn {
+            background: #333;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            margin-left: 4px;
+        }
+
+        .manage-box {
+            background: #1a1a1a;
+            border: 1px dashed var(--primary);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0 15px 0;
+            display: none;
+        }
+
+        .drag-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin: 12px 0;
+        }
+
+        .drag-item {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            background: #2d2d2d;
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .drag-item input[type="text"] {
+            flex: 1;
+            min-width: 0;
+            background: #222;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .seat-btn {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 6px 10px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .delete-p-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0 4px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 200;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+        }
+
+        .modal-content {
+            background: var(--surface);
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 450px;
+            text-align: center;
+        }
+
+        #qrcode-box {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+        }
 
         @media (min-width: 850px) {
-            .nav-tabs { display: none !important; }
-            .main-container { display: flex; gap: 25px; max-width: 1400px; margin: 0 auto; padding: 25px; }
-            .panel { display: block !important; flex: 1; background: var(--surface); padding: 25px; border-radius: 12px; }
-            #input-panel { flex: 1.2; }
-            #board-panel { flex: 1.8; }
+            .nav-tabs {
+                display: none !important;
+            }
+
+            .main-container {
+                display: flex;
+                gap: 25px;
+                max-width: 1400px;
+                margin: 0 auto;
+                padding: 25px;
+            }
+
+            .panel {
+                display: block !important;
+                flex: 1;
+                background: var(--surface);
+                padding: 25px;
+                border-radius: 12px;
+            }
+
+            #input-panel {
+                flex: 1.2;
+            }
+
+            #board-panel {
+                flex: 1.8;
+            }
         }
     </style>
 </head>
+
 <body>
 
     <header>
@@ -112,7 +528,8 @@
             <div class="setup-card" id="setup-area">
                 <div class="form-group">
                     <label id="label-player-count">選擇人數</label>
-                    <input type="number" id="player-count" class="setup-input" value="4" min="2" max="52" oninput="initPlayerInputs()">
+                    <input type="number" id="player-count" class="setup-input" value="4" min="2" max="52"
+                        oninput="initPlayerInputs()">
                 </div>
                 <label id="label-names-help">玩家名字 (順時針座位)</label>
                 <div class="names-grid" id="names-fields-box"></div>
@@ -125,32 +542,40 @@
                     <div class="dealer-tip" id="display-dealer-name">👑 莊家: --</div>
                 </div>
 
-                <button class="action-btn btn-secondary" id="btn-toggle-manage" onclick="toggleManagePlayers()">👥 調整玩家次序 / 改名</button>
+                <button class="action-btn btn-secondary" id="btn-toggle-manage" onclick="toggleManagePlayers()">👥
+                    調整玩家次序 / 改名</button>
                 <div id="manage-players-box" class="manage-box">
                     <h3 id="manage-title" style="font-size:14px; color:var(--primary);">管理玩家（改名、上下移動座位；完成一局後亦可重排）</h3>
-                    <p id="manage-help" style="font-size:12px; color:var(--text-muted); margin:8px 0 0;">座位由上至下為順時針順序。改名唔會清分數；調位會跟住人一齊搬分數。</p>
+                    <p id="manage-help" style="font-size:12px; color:var(--text-muted); margin:8px 0 0;">
+                        座位由上至下為順時針順序。改名唔會清分數；調位會跟住人一齊搬分數。</p>
                     <div class="drag-list" id="manage-drag-list"></div>
                     <div style="display:flex; gap:8px; margin-top:10px;">
-                        <input type="text" id="new-player-name" placeholder="輸入新玩家名字" style="flex:1; padding:10px; background:#2d2d2d; border:1px solid var(--border); color:#fff; border-radius:6px; font-size:14px;">
-                        <button class="action-btn" id="btn-add-player" style="width:auto; margin:0; padding:10px 14px;" onclick="addNewPlayer()">➕ 新增</button>
+                        <input type="text" id="new-player-name" placeholder="輸入新玩家名字"
+                            style="flex:1; padding:10px; background:#2d2d2d; border:1px solid var(--border); color:#fff; border-radius:6px; font-size:14px;">
+                        <button class="action-btn" id="btn-add-player" style="width:auto; margin:0; padding:10px 14px;"
+                            onclick="addNewPlayer()">➕ 新增</button>
                     </div>
                 </div>
 
                 <div id="section-bid">
-                    <div id="bid-label-wrap" style="color:var(--text-muted); font-size:14px; margin-bottom:8px;">預計取得墩數 (報墩) <span id="bid-hint" style="font-size:12px; color:#aaa;">(未填寫預設為 0)</span></div>
+                    <div id="bid-label-wrap" style="color:var(--text-muted); font-size:14px; margin-bottom:8px;">預計取得墩數
+                        (報墩) <span id="bid-hint" style="font-size:12px; color:#aaa;">(未填寫預設為 0)</span></div>
                     <div class="inputs-grid" id="grid-bid-inputs"></div>
                     <button class="action-btn" id="btn-start-round" onclick="lockBids()">鎖定報墩並開始</button>
                 </div>
 
                 <div id="section-result" style="opacity: 0.4; pointer-events: none;">
-                    <div id="result-label-wrap" style="color:var(--text-muted); font-size:14px; margin-bottom:8px;">實際贏取墩數 (勝墩) <span id="result-hint" style="font-size:12px; color:#aaa;">(未填寫預設為 0)</span></div>
+                    <div id="result-label-wrap" style="color:var(--text-muted); font-size:14px; margin-bottom:8px;">
+                        實際贏取墩數 (勝墩) <span id="result-hint" style="font-size:12px; color:#aaa;">(未填寫預設為 0)</span></div>
                     <div class="inputs-grid" id="grid-result-inputs"></div>
                     <button class="action-btn" id="btn-end-round" onclick="submitResults()" disabled>結束本局並結算</button>
                 </div>
-                
+
                 <div style="display:flex; gap:8px; margin-top:10px;">
-                    <button class="action-btn btn-warning" id="btn-reset-round" style="flex:1;" onclick="resetCurrentRound()">↩️ 重設本局輸入</button>
-                    <button class="action-btn btn-danger" id="btn-reset-scores" style="flex:1;" onclick="restartEntireGame()">🧹 清空分數重開新局</button>
+                    <button class="action-btn btn-warning" id="btn-reset-round" style="flex:1;"
+                        onclick="resetCurrentRound()">↩️ 重設本局輸入</button>
+                    <button class="action-btn btn-danger" id="btn-reset-scores" style="flex:1;"
+                        onclick="restartEntireGame()">🧹 清空分數重開新局</button>
                 </div>
             </div>
         </div>
@@ -158,15 +583,24 @@
         <!-- 積分板面板 -->
         <div id="board-panel" class="panel">
             <div id="admin-tools" style="margin-bottom:12px; display:flex; gap:8px; flex-wrap:wrap;">
-                <button id="qr-btn" class="action-btn btn-secondary" style="padding:10px; font-size:13px; margin:0; flex:1;" onclick="showQRCodeModal()">📱 顯示唯讀 QR Code</button>
-                <button id="copy-link-btn" class="action-btn btn-secondary" style="padding:10px; font-size:13px; margin:0; flex:1;" onclick="copyReadOnlyLink()">🔗 複製唯讀連結</button>
+                <button id="qr-btn" class="action-btn btn-secondary"
+                    style="padding:10px; font-size:13px; margin:0; flex:1;" onclick="showQRCodeModal()">📱 顯示唯讀 QR
+                    Code</button>
+                <button id="copy-link-btn" class="action-btn btn-secondary"
+                    style="padding:10px; font-size:13px; margin:0; flex:1;" onclick="copyReadOnlyLink()">🔗
+                    複製唯讀連結</button>
             </div>
             <div id="export-tools" style="margin-bottom:12px;">
-                <button id="btn-export" class="action-btn btn-success" style="padding:10px; font-size:13px; margin:0;" onclick="exportToExcel()">📊 匯出 Excel 檔</button>
+                <button id="btn-export" class="action-btn btn-success" style="padding:10px; font-size:13px; margin:0;"
+                    onclick="exportToExcel()">📊 匯出 Excel 檔</button>
             </div>
             <div class="table-responsive-wrapper">
                 <table class="score-board-table">
-                    <thead><tr id="board-th-row"><th style="width:50px;">局</th></tr></thead>
+                    <thead>
+                        <tr id="board-th-row">
+                            <th style="width:50px;">局</th>
+                        </tr>
+                    </thead>
                     <tbody id="board-tbody"></tbody>
                 </table>
             </div>
@@ -181,8 +615,10 @@
             <h3 id="edit-modal-title" style="margin-bottom:15px; color:var(--primary);">修改記錄</h3>
             <div id="modal-inputs-area"></div>
             <div style="display:flex; gap:10px; margin-top:20px;">
-                <button id="save-edit-btn" class="action-btn btn-success" style="margin:0;" onclick="saveEditedRound()">儲存變更並重算</button>
-                <button id="cancel-edit-btn" class="action-btn btn-secondary" style="margin:0;" onclick="closeEditModal()">取消</button>
+                <button id="save-edit-btn" class="action-btn btn-success" style="margin:0;"
+                    onclick="saveEditedRound()">儲存變更並重算</button>
+                <button id="cancel-edit-btn" class="action-btn btn-secondary" style="margin:0;"
+                    onclick="closeEditModal()">取消</button>
             </div>
         </div>
     </div>
@@ -191,355 +627,400 @@
     <div id="qr-modal" class="modal">
         <div class="modal-content">
             <h3 id="qr-title" style="color:var(--primary);">玩家唯讀觀看 QR Code</h3>
-            <p id="qr-help" style="font-size:12px; color:var(--text-muted); margin-top:5px;">請確保房主手機網頁開著。玩家掃描一次後即可連線，重開新局也無需重新掃描。</p>
+            <p id="qr-help" style="font-size:12px; color:var(--text-muted); margin-top:5px;">
+                請確保房主手機網頁開著。玩家掃描一次後即可連線，重開新局也無需重新掃描。</p>
             <div id="qrcode-box"></div>
-            <button id="qr-close-btn" class="action-btn btn-secondary" style="margin:0;" onclick="closeQRModal()">關閉</button>
+            <button id="qr-close-btn" class="action-btn btn-secondary" style="margin:0;"
+                onclick="closeQRModal()">關閉</button>
         </div>
     </div>
 
-<script>
-    const translations = {
-        'zh-HK': {
-            langEn: "English",
-            langZhHK: "繁體中文",
-            langZhCN: "简体中文",
-            metaDescription: "德國橋牌智能計分板，支援動態座位、規則防錯、QR 唯讀同步與 Excel 匯出。",
-            metaKeywords: "德國橋牌計分, 橋牌計分板, 德國橋牌, German Bridge, QR Code, 自動存檔",
-            title: "德國橋牌智能計分板",
-            h1: "德國橋牌智能計分系統",
-            tabInput: "輸入",
-            tabBoard: "積分板",
-            roleAdmin: "🔑 權限：管理員模式（可輸入/修改分數）",
-            roleViewer: "👀 權限：玩家唯讀模式（同步房主數據中）",
-            setupPlayers: "選擇人數",
-            setupNames: "玩家名字 (順時針座位)",
-            btnCreateGame: "建立新對局",
-            btnManagePlayers: "👥 調整玩家次序 / 改名",
-            manageTitle: "管理玩家（改名、上下移動座位；完成一局後亦可重排）",
-            manageHelp: "座位由上至下為順時針順序。改名唔會清分數；調位會跟住人一齊搬分數。",
-            newPlayerPlaceholder: "輸入新玩家名字",
-            btnAddPlayer: "➕ 新增",
-            labelBid: "預計取得墩數 (報墩)",
-            bidHint: "(未填寫預設為 0)",
-            btnStartRound: "鎖定報墩並開始",
-            labelResult: "實際贏取墩數 (勝墩)",
-            resultHint: "(未填寫預設為 0)",
-            btnEndRound: "結束本局並結算",
-            btnResetRound: "↩️ 重設本局輸入",
-            btnResetScores: "🧹 清空分數重開新局",
-            boardRoundCol: "局",
-            boardEmptyText: "開始新對局後，分數表會在這裡實時更新",
-            btnExport: "📊 匯出 Excel 檔",
-            qrButton: "📱 顯示唯讀 QR Code",
-            copyLinkButton: "🔗 複製唯讀連結",
-            qrTitle: "玩家唯讀觀看 QR Code",
-            qrHelp: "請確保房主手機網頁開著。玩家掃描一次後即可連線，重開新局也無需重新掃描。",
-            closeText: "關閉",
-            peerWaiting: "正在與 P2P 伺服器建立房號，請稍候再試...",
-            peerError: "P2P 連線失敗，請重新整理網頁再試。 (Error: {type})",
-            editModalTitle: "修改記錄",
-            saveEdit: "儲存變更並重算",
-            cancelEdit: "取消",
-            playerDefaultName: "玩家 {char}",
-            roundTitleTemplate: "局 {round} (發 {cards} 張)",
-            dealerTipTemplate: "👑 莊家: {name}",
-            tagDealer: " (莊)",
-            tagLimit: " (🎯限制位)",
-            screwNoticeDefault: "(🎯限制位不能叫出令總數相符)",
-            screwNoticeForbidden: "(🎯限制位不能叫 {forbidden})",
-            alertMaxCardsBid: "單人報墩不能超過本局總牌數 ({maxCards} 張)！",
-            alertBidsNegative: "玩家 {name} 的報墩不能為負數！",
-            alertScrewForbidden: "限制位不能報 {forbidden}：全桌總報墩不能剛好等於本局牌數 ({maxCards})。請改報其他數字（可以爆墩）。",
-            alertTotalBidMatches: "德國橋牌規則：全桌報墩總數 ({total}) 不能『剛好等於』牌數 ({maxCards} 張)！限制位必須改報，令總數少過或大過本局牌數。",
-            alertResultNegative: "玩家 {name} 的勝墩不能為負數！",
-            alertResultSum: "全桌實際贏取總勝墩 ({total}) 不等於本局總牌數 ({maxCards} 張)！請檢查勝墩輸入。",
-            alertNeedAtLeastTwo: "最少要保留 2 位玩家！",
-            confirmResetScores: "確定要清空所有分數重開新局嗎？（房間 QR Code 將保持不變，其他玩家無需重新掃描）",
-            alertResetDone: "已重開新局！所有分數已清空。",
-            confirmDeletePlayer: "確定移除「{name}」？過往局數入面呢個人嘅分數都會一齊刪除。",
-            excelTotalScore: "總分數",
-            excelRankLabel: "第{rank}名",
-            docTitle: "📘 德國橋牌智能計分板工具指南",
-            docP1: "本網頁是一個響應式的<strong>德國橋牌數位計分板</strong>，專為解決傳統紙筆計分不便而開發的實用工具。",
-            docH3_1: "自動計分邏輯與防錯機制",
-            docLi1: "<strong>叫注與首攻位置重排：</strong> 叫注界面跟隨當局基本順時針順序（例：ABCD）。「實際贏取墩數」界面則自動將最後一位（例：D）拉到最前方呈現（例：DABC），完美符合首攻視角，避免填錯人。",
-            docLi2: "<strong>限制位防錯機制：</strong> 叫注列表的最後一位（🎯限制位）會自動受到系統檢索，防止叫出導致總數相符的數字（即所有人的 Bid 總和等於該局牌數）。人員管理面板支援隨時拖曳排序。",
-            docP2: "本工具完全基於前端建構，數據保存在本機，並支援 QR 共享與唯讀同步，免除繁瑣的手動數學計算與隱私洩露風險。",
-            howToPlayTitle: "🃏 如何玩德國橋牌 (基本規則)",
-            howToPlayP1: "德國橋牌是一款考驗預測能力與心理博弈的撲克牌遊戲，通常由 4 人進行（亦支援 2 至多名玩家）。遊戲目標是精準預測自己每局能贏得多少「墩」。",
-            howToPlayH3_1: "1. 遊戲流程與發牌規則",
-            howToPlayLi1: "<strong>動態牌數：</strong> 第一局每人發 1 張牌，第二局發 2 張，如此類推，直到發到人數上限（例如 4 人時最大發 13 張）。之後可選擇逐漸遞減回 1 張，或直接計算總分。",
-            howToPlayLi2: "<strong>叫注：</strong> 睇完牌後，由莊家開始順時針叫注，預測自己能拿多少墩。最後一位叫注者（🎯 限制位/莊家）所叫的墩數，加上前面所有人叫的總和，<strong>絕對不能</strong>等於當局的發牌數。這確保了每局一定有人成功、有人失敗！",
-            howToPlayH3_2: "2. 出牌與勝負判定",
-            howToPlayLi3: "<strong>跟花：</strong> 由首攻玩家先出一張牌，其餘玩家必須跟隨相同花色。若果手上無該花色，才可以出其他花色（俗稱補牌或墊牌）。",
-            howToPlayLi4: "<strong>贏取墩數：</strong> 在該墩中，出過「首攻花色」且點數最大（A 最大，2 最小）的玩家贏得該墩，並成為下一墩的首攻玩家。",
-            howToPlayH3_3: "3. 計分方式 (本系統會自動處理)",
-            howToPlayLi5: "<strong>預測成功 (中了)：</strong> 獲得基礎分 10 分 + (贏得墩數的二次方)。例如預測 2 墩且切實拿到 2 墩，可得 $10 + 2^2 = 14$ 分；預測 0 墩拿 0 墩可得 10 分。",
-            howToPlayLi6: "<strong>預測失敗 (爆了)：</strong> 扣除 (實際墩數與預測墩數差值) 的二次方。例如預測 3 墩但最後只拿 1 墩，差值為 2，將會被扣除 $2^2 = 4$ 分（即記 -4 分）。"
-        },
-        'en': {
-            langEn: "English",
-            langZhHK: "Traditional Chinese",
-            langZhCN: "Simplified Chinese",
-            metaDescription: "German Bridge score tracker with dynamic seat rotation, rule validation, QR read-only sharing, and Excel export.",
-            metaKeywords: "German Bridge scoreboard, bridge scoring, score tracker, QR share, Excel export, last seat",
-            title: "German Bridge Scoreboard & Tracker Tool",
-            h1: "German Bridge Scoring System",
-            tabInput: "Input",
-            tabBoard: "Scoreboard",
-            roleAdmin: "🔑 Role: Admin mode (can input / modify scores)",
-            roleViewer: "👀 Role: Viewer mode (syncing host data)",
-            setupPlayers: "Select Players",
-            setupNames: "Player names (clockwise seating)",
-            btnCreateGame: "Create New Match",
-            btnManagePlayers: "👥 Adjust seats / rename players",
-            manageTitle: "Manage players (rename, move seats, reorder after any round)",
-            manageHelp: "Seats are shown from top to bottom in clockwise order. Renaming does not clear scores; seat changes move the player and their history together.",
-            newPlayerPlaceholder: "Enter new player name",
-            btnAddPlayer: "➕ Add",
-            labelBid: "Predicted Tricks",
-            bidHint: "(Blank defaults to 0)",
-            btnStartRound: "Lock bids and start",
-            labelResult: "Actual Tricks Won",
-            resultHint: "(Blank defaults to 0)",
-            btnEndRound: "End round and calculate",
-            btnResetRound: "↩️ Reset round inputs",
-            btnResetScores: "🧹 Clear scores and restart",
-            boardRoundCol: "Rnd",
-            boardEmptyText: "The score table will update here after the new match starts",
-            btnExport: "📊 Export Excel",
-            qrButton: "📱 Show read-only QR code",
-            copyLinkButton: "🔗 Copy read-only link",
-            qrTitle: "Player read-only QR code",
-            qrHelp: "Make sure the host keeps the page open on their phone. Players can scan once and sync automatically. No re-scan needed after a reset.",
-            closeText: "Close",
-            peerWaiting: "Connecting to the P2P server to create a room. Please wait...",
-            peerError: "P2P connection failed. Please refresh the page and try again. (Error: {type})",
-            editModalTitle: "Edit record",
-            saveEdit: "Save changes and recalc",
-            cancelEdit: "Cancel",
-            playerDefaultName: "Player {char}",
-            roundTitleTemplate: "Round {round} ({cards} cards)",
-            dealerTipTemplate: "👑 Dealer: {name}",
-            tagDealer: " (Dealer)",
-            tagLimit: " (🎯 last seat)",
-            screwNoticeDefault: "(🎯 Last seat cannot make the total equal the round count)",
-            screwNoticeForbidden: "(🎯 Last seat cannot bid {forbidden})",
-            alertMaxCardsBid: "A single bid cannot exceed the number of cards in this round ({maxCards})!",
-            alertBidsNegative: "Player {name} bid cannot be negative!",
-            alertScrewForbidden: "The limit seat cannot bid {forbidden}: the combined bids cannot exactly equal the total cards ({maxCards}). Choose another number or bid beyond the total.",
-            alertTotalBidMatches: "German Bridge rule: the total bid for the table ({total}) cannot exactly equal the number of cards ({maxCards}). The limit seat must change the bid so the total is lower or higher.",
-            alertResultNegative: "Player {name} actual tricks cannot be negative!",
-            alertResultSum: "The total tricks won ({total}) do not match the round total ({maxCards}). Please re-check the result inputs.",
-            alertNeedAtLeastTwo: "At least 2 players must remain!",
-            confirmResetScores: "Clear all scores and restart the match? (The QR room code will remain unchanged, so no re-scan is needed by others.)",
-            alertResetDone: "New match started. All scores cleared.",
-            confirmDeletePlayer: "Remove '{name}'? Their score history in earlier rounds will also be deleted.",
-            excelTotalScore: "Total Score",
-            excelRankLabel: "Rank {rank}",
-            docTitle: "📘 German Bridge Scoreboard Tool Manual",
-            docP1: "This responsive <strong>German Bridge Scoreboard</strong> is designed to remove manual arithmetic and make match tracking simple and clear.",
-            docH3_1: "Automatic scoring logic and anti-error controls",
-            docLi1: "<strong>Seat reordering:</strong> bidding follows the round's clockwise seat order. The actual-trick inputs automatically shift the last seat to the front to match lead-play perspective and reduce data-entry mistakes.",
-            docLi2: "<strong>Last-seat validation:</strong> the final bidder is blocked from choosing a value that causes the table total to exactly equal the cards dealt. Player management also supports drag-and-drop seating.",
-            docP2: "The tool runs fully in the browser, keeps data locally, and supports QR-based read-only sharing without risking privacy or manual computation errors.",
-            howToPlayTitle: "🃏 How to Play German Bridge (Basic Guide)",
-            howToPlayP1: "German Bridge is a trick-taking card game that tests prediction and strategy. Usually played by 4 people, the goal is to predict exactly how many tricks you will win each round.",
-            howToPlayH3_1: "1. Game flow and dealing",
-            howToPlayLi1: "<strong>Changing hand size:</strong> In round 1, each player gets 1 card; round 2 gets 2 cards, continuing up to the maximum allowed by the table size. It can then cycle back down or continue to a total score.",
-            howToPlayLi2: "<strong>Bidding:</strong> After looking at your cards, players bid clockwise starting from the dealer. The last bidder (🎯 last seat/dealer position) must not make a bid that makes all bids equal the number of cards in the round. This guarantees there is always a winner and a loser each round.",
-            howToPlayH3_2: "2. Playing the tricks",
-            howToPlayLi3: "<strong>Following suit:</strong> The lead player plays a card; the other players must follow the same suit if they can. If they cannot, they may play another suit.",
-            howToPlayLi4: "<strong>Winning a trick:</strong> The highest card in the led suit wins the trick. The winner becomes the lead for the next trick.",
-            howToPlayH3_3: "3. Scoring (handled automatically)",
-            howToPlayLi5: "<strong>Successful prediction:</strong> You get a base of 10 points plus the square of the tricks won. Example: bidding 2 and winning 2 gives $10 + 2^2 = 14$ points; bidding 0 and getting 0 also gives 10 points.",
-            howToPlayLi6: "<strong>Failed prediction:</strong> You lose the square of the difference between actual and bid tricks. Example: bidding 3 but only winning 1 gives a difference of 2, so you lose $2^2 = 4$ points."
-        },
-        'zh-CN': {
-            langEn: "English",
-            langZhHK: "繁体中文",
-            langZhCN: "简体中文",
-            metaDescription: "德国桥牌智能计分板，支持动态座位、规则防错、QR 只读同步与 Excel 导出。",
-            metaKeywords: "德国桥牌计分, 桥牌计分板, German Bridge, QR Code, 自动存档, 动态座位",
-            title: "德国桥牌智能计分板",
-            h1: "德国桥牌智能计分系统",
-            tabInput: "输入",
-            tabBoard: "积分板",
-            roleAdmin: "🔑 权限：管理员模式（可输入/修改分数）",
-            roleViewer: "👀 权限：玩家只读模式（同步房主数据中）",
-            setupPlayers: "选择人数",
-            setupNames: "玩家名字 (顺时针座位)",
-            btnCreateGame: "建立新对局",
-            btnManagePlayers: "👥 调整玩家次序 / 改名",
-            manageTitle: "管理玩家（改名、上下移动座位；完成一局后亦可重排）",
-            manageHelp: "座位由上至下为顺时针顺序。改名不会清分数；调位会跟着人一起搬分数。",
-            newPlayerPlaceholder: "输入新玩家名字",
-            btnAddPlayer: "➕ 新增",
-            labelBid: "预计取得墩数 (报墩)",
-            bidHint: "(未填写默认为 0)",
-            btnStartRound: "锁定报墩并开始",
-            labelResult: "实际赢取墩数 (胜墩)",
-            resultHint: "(未填写默认为 0)",
-            btnEndRound: "结束本局并结算",
-            btnResetRound: "↩️ 重设本局输入",
-            btnResetScores: "🧹 清空分数重开新局",
-            boardRoundCol: "局",
-            boardEmptyText: "开始新对局后，分数表会在这里实时更新",
-            btnExport: "📊 汇出 Excel 檔",
-            qrButton: "📱 显示只读 QR Code",
-            copyLinkButton: "🔗 复制只读链接",
-            qrTitle: "玩家只读观看 QR Code",
-            qrHelp: "请确保房主手机网页开着。玩家扫描一次后即可连线，重开新局也无需重新扫描。",
-            closeText: "关闭",
-            peerWaiting: "正在与 P2P 服务器建立房号，请稍候再试...",
-            peerError: "P2P 连接失败，请重新整理网页再试。 (Error: {type})",
-            editModalTitle: "修改记录",
-            saveEdit: "保存变更并重算",
-            cancelEdit: "取消",
-            playerDefaultName: "玩家 {char}",
-            roundTitleTemplate: "局 {round} (发 {cards} 张)",
-            dealerTipTemplate: "👑 庄家: {name}",
-            tagDealer: " (庄)",
-            tagLimit: " (🎯限制位)",
-            screwNoticeDefault: "(🎯限制位不能叫出令总数相符)",
-            screwNoticeForbidden: "(🎯限制位不能叫 {forbidden})",
-            alertMaxCardsBid: "单人报墩不能超过本局总牌数 ({maxCards} 张)！",
-            alertBidsNegative: "玩家 {name} 的报墩不能为负数！",
-            alertScrewForbidden: "限制位不能报 {forbidden}：全桌总报墩不能刚好等于本局牌数 ({maxCards})。请改报其他数字（可以爆墩）。",
-            alertTotalBidMatches: "德国桥牌规则：全桌报墩总数 ({total}) 不能『刚好等于』牌数 ({maxCards} 张)！限制位必须改报，令总数少过或大过本局牌数。",
-            alertResultNegative: "玩家 {name} 的胜墩不能为负数！",
-            alertResultSum: "全桌实际赢取总胜墩 ({total}) 不等于本局总牌数 ({maxCards} 张)！请检查胜墩输入。",
-            alertNeedAtLeastTwo: "至少要保留 2 位玩家！",
-            confirmResetScores: "确定要清空所有分数重开新局吗？（房间 QR Code 将保持不变，其他玩家无需重新扫描）",
-            alertResetDone: "已重开新局！所有分数已清空。",
-            confirmDeletePlayer: "确定移除「{name}」？过往局数里面这个人的分数都会一起删除。",
-            excelTotalScore: "总分数",
-            excelRankLabel: "第{rank}名",
-            docTitle: "📘 德国桥牌数位计分板工具指南",
-            docP1: "本网页是一个响应式的<strong>德国桥牌数位计分板</strong>，专为解决传统纸笔计分不便而开发的实用工具。",
-            docH3_1: "自动计分逻辑与防错机制",
-            docLi1: "<strong>顺序重排：</strong> 叫注界面遵循当局基本顺时针顺序（如ABCD）。“实际赢得墩数”界面则自动把最后一位（如D）移至最前方呈现（如DABC），完美符合首攻视角。",
-            docLi2: "<strong>限制位防错：</strong> 列表最后一位（🎯限制位）自动受到叫注数字拦截，防止叫出导致总数相符的数字。中途可自由拖拽管理座位人员。",
-            docP2: "数据本地存储，并支持 QR 共享与只读同步，免除繁琐的手动数学计算与隐私泄露风险。",
-            howToPlayTitle: "🃏 如何玩德国桥牌 (基本规则)",
-            howToPlayP1: "德国桥牌是一款考验预测能力与策略博弈的扑克牌游戏，通常由 4 人进行。游戏核心目标是精准预测自己每局能赢得多少“墩”。",
-            howToPlayH3_1: "1. 游戏流程与发牌规则",
-            howToPlayLi1: "<strong>动态牌数：</strong> 第一局每人发 1 张牌，第二局发 2 张，依此类推，直到发到人数上限（例如 4 人时最大发 13 张）。之后可以选择逐渐递减回 1 张。",
-            howToPlayLi2: "<strong>叫注：</strong> 看完牌后，由庄家开始顺时针叫注。最后一位叫注者（🎯 限制位/庄家）所叫的墩数，加上前面所有人叫的总和，<strong>绝对不能</strong>等于当局的发牌数。这确保了当局一定有人得分、有人扣分！",
-            howToPlayH3_2: "2. 出牌与胜负判定",
-            howToPlayLi3: "<strong>跟花：</strong> 由首攻玩家先出一张牌，其余玩家必须跟随相同花色。若无该花色，才可以出其他花色。",
-            howToPlayLi4: "<strong>赢得墩数：</strong> 在该墩中，出过“首攻花色”且点数最大（A 最大，2 最小）的玩家赢得该墩，并成为下一墩的首攻玩家。",
-            howToPlayH3_3: "3. 计分方式 (本系统会自动处理)",
-            howToPlayLi5: "<strong>预测成功 (中了)：</strong> 获得基础分 10 分 + (赢得墩数的二次方)。例如预测 2 墩且切切实实拿到 2 墩，可得 $10 + 2^2 = 14$ 分。",
-            howToPlayLi6: "<strong>预测失败 (爆了)：</strong> 扣除 (实际墩数与预测墩数差值) 的二次方。例如预测 3 墩但最后只拿 1 墩，差值为 2，将会被扣除 $2^2 = 4$ 分（即记 -4 分）。"
+    <script>
+        const translations = {
+            'zh-HK': {
+                langEn: "English",
+                langZhHK: "繁體中文",
+                langZhCN: "简体中文",
+                metaDescription: "德國橋牌智能計分板，支援動態座位、規則防錯、QR 唯讀同步與 Excel 匯出。",
+                metaKeywords: "德國橋牌計分, 橋牌計分板, 德國橋牌, German Bridge, QR Code, 自動存檔",
+                title: "德國橋牌智能計分板",
+                h1: "德國橋牌智能計分系統",
+                tabInput: "輸入",
+                tabBoard: "積分板",
+                roleAdmin: "🔑 權限：管理員模式（可輸入/修改分數）",
+                roleViewer: "👀 權限：玩家唯讀模式（同步房主數據中）",
+                setupPlayers: "選擇人數",
+                setupNames: "玩家名字 (順時針座位)",
+                btnCreateGame: "建立新對局",
+                btnManagePlayers: "👥 調整玩家次序 / 改名",
+                manageTitle: "管理玩家（改名、上下移動座位；完成一局後亦可重排）",
+                manageHelp: "座位由上至下為順時針順序。改名唔會清分數；調位會跟住人一齊搬分數。",
+                newPlayerPlaceholder: "輸入新玩家名字",
+                btnAddPlayer: "➕ 新增",
+                labelBid: "報墩",
+                bidHint: "(未填寫預設為 0)",
+                btnStartRound: "鎖定報墩並開始",
+                labelResult: "勝墩",
+                resultHint: "(未填寫預設為 0)",
+                btnEndRound: "結束本局並結算",
+                btnResetRound: "↩️ 重設本局輸入",
+                btnResetScores: "🧹 清空分數重開新局",
+                boardRoundCol: "局",
+                boardEmptyText: "開始新對局後，分數表會在這裡實時更新",
+                btnExport: "📊 匯出 Excel 檔",
+                qrButton: "📱 顯示唯讀 QR Code",
+                copyLinkButton: "🔗 複製唯讀連結",
+                qrTitle: "玩家唯讀觀看 QR Code",
+                qrHelp: "請確保房主手機網頁開著。玩家掃描一次後即可連線，重開新局也無需重新掃描。",
+                closeText: "關閉",
+                peerWaiting: "正在與 P2P 伺服器建立房號，請稍候再試...",
+                peerError: "P2P 連線失敗，請重新整理網頁再試。 (Error: {type})",
+                editModalTitle: "修改記錄",
+                saveEdit: "儲存變更並重算",
+                cancelEdit: "取消",
+                playerDefaultName: "玩家 {char}",
+                roundTitleTemplate: "局 {round} (發 {cards} 張)",
+                dealerTipTemplate: "👑 莊家: {name}",
+                tagDealer: " (莊)",
+                tagLimit: " (🎯限制位)",
+                screwNoticeDefault: "(🎯限制位不能叫出令總數相符)",
+                screwNoticeForbidden: "(🎯限制位不能叫 {forbidden})",
+                alertMaxCardsBid: "單人報墩不能超過本局總牌數 ({maxCards} 張)！",
+                alertBidsNegative: "玩家 {name} 的報墩不能為負數！",
+                alertScrewForbidden: "限制位不能報 {forbidden}：全桌總報墩不能剛好等於本局牌數 ({maxCards})。請改報其他數字（可以爆墩）。",
+                alertTotalBidMatches: "德國橋牌規則：全桌報墩總數 ({total}) 不能『剛好等於』牌數 ({maxCards} 張)！限制位必須改報，令總數少過或大過本局牌數。",
+                alertResultNegative: "玩家 {name} 的勝墩不能為負數！",
+                alertResultSum: "全桌實際贏取總勝墩 ({total}) 不等於本局總牌數 ({maxCards} 張)！請檢查勝墩輸入。",
+                alertNeedAtLeastTwo: "最少要保留 2 位玩家！",
+                confirmResetScores: "確定要清空所有分數重開新局嗎？（房間 QR Code 將保持不變，其他玩家無需重新掃描）",
+                alertResetDone: "已重開新局！所有分數已清空。",
+                confirmDeletePlayer: "確定移除「{name}」？過往局數入面呢個人嘅分數都會一齊刪除。",
+                excelTotalScore: "總分數",
+                excelRankLabel: "第{rank}名",
+                docTitle: "📘 德國橋牌智能計分板工具指南",
+                docP1: "本網頁是一個響應式的<strong>德國橋牌數位計分板</strong>，專為解決傳統紙筆計分不便而開發的實用工具。",
+                docH3_1: "自動計分邏輯與防錯機制",
+                docLi1: "<strong>叫注與首攻位置重排：</strong> 叫注界面跟隨當局基本順時針順序（例：ABCD）。「實際贏取墩數」界面則自動將最後一位（例：D）拉到最前方呈現（例：DABC），完美符合首攻視角，避免填錯人。",
+                docLi2: "<strong>限制位防錯機制：</strong> 叫注列表的最後一位（🎯限制位）會自動受到系統檢索，防止叫出導致總數相符的數字（即所有人的 Bid 總和等於該局牌數）。人員管理面板支援隨時拖曳排序。",
+                docP2: "本工具完全基於前端建構，數據保存在本機，並支援 QR 共享與唯讀同步，免除繁瑣的手動數學計算與隱私洩露風險。",
+                howToPlayTitle: "🃏 如何玩德國橋牌 (基本規則)",
+                howToPlayP1: "德國橋牌是一款考驗預測能力與心理博弈的撲克牌遊戲，通常由 4 人進行（亦支援 2 至多名玩家）。遊戲目標是精準預測自己每局能贏得多少「墩」。",
+                howToPlayH3_1: "1. 遊戲流程與發牌規則",
+                howToPlayLi1: "<strong>動態牌數：</strong> 第一局每人發 1 張牌，第二局發 2 張，如此類推，直到發到人數上限（例如 4 人時最大發 13 張）。之後可選擇逐漸遞減回 1 張，或直接計算總分。",
+                howToPlayLi2: "<strong>叫注：</strong> 睇完牌後，由莊家開始順時針叫注，預測自己能拿多少墩。最後一位叫注者（🎯 限制位/莊家）所叫的墩數，加上前面所有人叫的總和，<strong>絕對不能</strong>等於當局的發牌數。這確保了每局一定有人成功、有人失敗！",
+                howToPlayH3_2: "2. 出牌與勝負判定",
+                howToPlayLi3: "<strong>跟花：</strong> 由首攻玩家先出一張牌，其餘玩家必須跟隨相同花色。若果手上無該花色，才可以出其他花色（俗稱補牌或墊牌）。",
+                howToPlayLi4: "<strong>贏取墩數：</strong> 在該墩中，出過「首攻花色」且點數最大（A 最大，2 最小）的玩家贏得該墩，並成為下一墩的首攻玩家。",
+                howToPlayH3_3: "3. 計分方式 (本系統會自動處理)",
+                howToPlayLi5: "<strong>預測成功 (中了)：</strong> 獲得基礎分 10 分 + (贏得墩數的二次方)。例如預測 2 墩且切實拿到 2 墩，可得 $10 + 2^2 = 14$ 分；預測 0 墩拿 0 墩可得 10 分。",
+                howToPlayLi6: "<strong>預測失敗 (爆了)：</strong> 扣除 (實際墩數與預測墩數差值) 的二次方。例如預測 3 墩但最後只拿 1 墩，差值為 2，將會被扣除 $2^2 = 4$ 分（即記 -4 分）。"
+            },
+            'en': {
+                langEn: "English",
+                langZhHK: "Traditional Chinese",
+                langZhCN: "Simplified Chinese",
+                metaDescription: "German Bridge score tracker with dynamic seat rotation, rule validation, QR read-only sharing, and Excel export.",
+                metaKeywords: "German Bridge scoreboard, bridge scoring, score tracker, QR share, Excel export, last seat",
+                title: "German Bridge Scoreboard & Tracker Tool",
+                h1: "German Bridge Scoring System",
+                tabInput: "Input",
+                tabBoard: "Scoreboard",
+                roleAdmin: "🔑 Role: Admin mode (can input / modify scores)",
+                roleViewer: "👀 Role: Viewer mode (syncing host data)",
+                setupPlayers: "Select Players",
+                setupNames: "Player names (clockwise seating)",
+                btnCreateGame: "Create New Match",
+                btnManagePlayers: "👥 Adjust seats / rename players",
+                manageTitle: "Manage players (rename, move seats, reorder after any round)",
+                manageHelp: "Seats are shown from top to bottom in clockwise order. Renaming does not clear scores; seat changes move the player and their history together.",
+                newPlayerPlaceholder: "Enter new player name",
+                btnAddPlayer: "➕ Add",
+                labelBid: "Bid",
+                bidHint: "(Blank defaults to 0)",
+                btnStartRound: "Lock bids and start",
+                labelResult: "Tricks",
+                resultHint: "(Blank defaults to 0)",
+                btnEndRound: "End round and calculate",
+                btnResetRound: "↩️ Reset round inputs",
+                btnResetScores: "🧹 Clear scores and restart",
+                boardRoundCol: "Rnd",
+                boardEmptyText: "The score table will update here after the new match starts",
+                btnExport: "📊 Export Excel",
+                qrButton: "📱 Show read-only QR code",
+                copyLinkButton: "🔗 Copy read-only link",
+                qrTitle: "Player read-only QR code",
+                qrHelp: "Make sure the host keeps the page open on their phone. Players can scan once and sync automatically. No re-scan needed after a reset.",
+                closeText: "Close",
+                peerWaiting: "Connecting to the P2P server to create a room. Please wait...",
+                peerError: "P2P connection failed. Please refresh the page and try again. (Error: {type})",
+                editModalTitle: "Edit record",
+                saveEdit: "Save changes and recalc",
+                cancelEdit: "Cancel",
+                playerDefaultName: "Player {char}",
+                roundTitleTemplate: "Round {round} ({cards} cards)",
+                dealerTipTemplate: "👑 Dealer: {name}",
+                tagDealer: " (Dealer)",
+                tagLimit: " (🎯 last seat)",
+                screwNoticeDefault: "(🎯 Last seat cannot make the total equal the round count)",
+                screwNoticeForbidden: "(🎯 Last seat cannot bid {forbidden})",
+                alertMaxCardsBid: "A single bid cannot exceed the number of cards in this round ({maxCards})!",
+                alertBidsNegative: "Player {name} bid cannot be negative!",
+                alertScrewForbidden: "The limit seat cannot bid {forbidden}: the combined bids cannot exactly equal the total cards ({maxCards}). Choose another number or bid beyond the total.",
+                alertTotalBidMatches: "German Bridge rule: the total bid for the table ({total}) cannot exactly equal the number of cards ({maxCards}). The limit seat must change the bid so the total is lower or higher.",
+                alertResultNegative: "Player {name} actual tricks cannot be negative!",
+                alertResultSum: "The total tricks won ({total}) do not match the round total ({maxCards}). Please re-check the result inputs.",
+                alertNeedAtLeastTwo: "At least 2 players must remain!",
+                confirmResetScores: "Clear all scores and restart the match? (The QR room code will remain unchanged, so no re-scan is needed by others.)",
+                alertResetDone: "New match started. All scores cleared.",
+                confirmDeletePlayer: "Remove '{name}'? Their score history in earlier rounds will also be deleted.",
+                excelTotalScore: "Total Score",
+                excelRankLabel: "Rank {rank}",
+                docTitle: "📘 German Bridge Scoreboard Tool Manual",
+                docP1: "This responsive <strong>German Bridge Scoreboard</strong> is designed to remove manual arithmetic and make match tracking simple and clear.",
+                docH3_1: "Automatic scoring logic and anti-error controls",
+                docLi1: "<strong>Seat reordering:</strong> bidding follows the round's clockwise seat order. The actual-trick inputs automatically shift the last seat to the front to match lead-play perspective and reduce data-entry mistakes.",
+                docLi2: "<strong>Last-seat validation:</strong> the final bidder is blocked from choosing a value that causes the table total to exactly equal the cards dealt. Player management also supports drag-and-drop seating.",
+                docP2: "The tool runs fully in the browser, keeps data locally, and supports QR-based read-only sharing without risking privacy or manual computation errors.",
+                howToPlayTitle: "🃏 How to Play German Bridge (Basic Guide)",
+                howToPlayP1: "German Bridge is a trick-taking card game that tests prediction and strategy. Usually played by 4 people, the goal is to predict exactly how many tricks you will win each round.",
+                howToPlayH3_1: "1. Game flow and dealing",
+                howToPlayLi1: "<strong>Changing hand size:</strong> In round 1, each player gets 1 card; round 2 gets 2 cards, continuing up to the maximum allowed by the table size. It can then cycle back down or continue to a total score.",
+                howToPlayLi2: "<strong>Bidding:</strong> After looking at your cards, players bid clockwise starting from the dealer. The last bidder (🎯 last seat/dealer position) must not make a bid that makes all bids equal the number of cards in the round. This guarantees there is always a winner and a loser each round.",
+                howToPlayH3_2: "2. Playing the tricks",
+                howToPlayLi3: "<strong>Following suit:</strong> The lead player plays a card; the other players must follow the same suit if they can. If they cannot, they may play another suit.",
+                howToPlayLi4: "<strong>Winning a trick:</strong> The highest card in the led suit wins the trick. The winner becomes the lead for the next trick.",
+                howToPlayH3_3: "3. Scoring (handled automatically)",
+                howToPlayLi5: "<strong>Successful prediction:</strong> You get a base of 10 points plus the square of the tricks won. Example: bidding 2 and winning 2 gives $10 + 2^2 = 14$ points; bidding 0 and getting 0 also gives 10 points.",
+                howToPlayLi6: "<strong>Failed prediction:</strong> You lose the square of the difference between actual and bid tricks. Example: bidding 3 but only winning 1 gives a difference of 2, so you lose $2^2 = 4$ points."
+            },
+            'zh-CN': {
+                langEn: "English",
+                langZhHK: "繁体中文",
+                langZhCN: "简体中文",
+                metaDescription: "德国桥牌智能计分板，支持动态座位、规则防错、QR 只读同步与 Excel 导出。",
+                metaKeywords: "德国桥牌计分, 桥牌计分板, German Bridge, QR Code, 自动存档, 动态座位",
+                title: "德国桥牌智能计分板",
+                h1: "德国桥牌智能计分系统",
+                tabInput: "输入",
+                tabBoard: "积分板",
+                roleAdmin: "🔑 权限：管理员模式（可输入/修改分数）",
+                roleViewer: "👀 权限：玩家只读模式（同步房主数据中）",
+                setupPlayers: "选择人数",
+                setupNames: "玩家名字 (顺时针座位)",
+                btnCreateGame: "建立新对局",
+                btnManagePlayers: "👥 调整玩家次序 / 改名",
+                manageTitle: "管理玩家（改名、上下移动座位；完成一局后亦可重排）",
+                manageHelp: "座位由上至下为顺时针顺序。改名不会清分数；调位会跟着人一起搬分数。",
+                newPlayerPlaceholder: "输入新玩家名字",
+                btnAddPlayer: "➕ 新增",
+                labelBid: "报墩",
+                bidHint: "(未填写默认为 0)",
+                btnStartRound: "锁定报墩并开始",
+                labelResult: "胜墩",
+                resultHint: "(未填写默认为 0)",
+                btnEndRound: "结束本局并结算",
+                btnResetRound: "↩️ 重设本局输入",
+                btnResetScores: "🧹 清空分数重开新局",
+                boardRoundCol: "局",
+                boardEmptyText: "开始新对局后，分数表会在这里实时更新",
+                btnExport: "📊 汇出 Excel 檔",
+                qrButton: "📱 显示只读 QR Code",
+                copyLinkButton: "🔗 复制只读链接",
+                qrTitle: "玩家只读观看 QR Code",
+                qrHelp: "请确保房主手机网页开着。玩家扫描一次后即可连线，重开新局也无需重新扫描。",
+                closeText: "关闭",
+                peerWaiting: "正在与 P2P 服务器建立房号，请稍候再试...",
+                peerError: "P2P 连接失败，请重新整理网页再试。 (Error: {type})",
+                editModalTitle: "修改记录",
+                saveEdit: "保存变更并重算",
+                cancelEdit: "取消",
+                playerDefaultName: "玩家 {char}",
+                roundTitleTemplate: "局 {round} (发 {cards} 张)",
+                dealerTipTemplate: "👑 庄家: {name}",
+                tagDealer: " (庄)",
+                tagLimit: " (🎯限制位)",
+                screwNoticeDefault: "(🎯限制位不能叫出令总数相符)",
+                screwNoticeForbidden: "(🎯限制位不能叫 {forbidden})",
+                alertMaxCardsBid: "单人报墩不能超过本局总牌数 ({maxCards} 张)！",
+                alertBidsNegative: "玩家 {name} 的报墩不能为负数！",
+                alertScrewForbidden: "限制位不能报 {forbidden}：全桌总报墩不能刚好等于本局牌数 ({maxCards})。请改报其他数字（可以爆墩）。",
+                alertTotalBidMatches: "德国桥牌规则：全桌报墩总数 ({total}) 不能『刚好等于』牌数 ({maxCards} 张)！限制位必须改报，令总数少过或大过本局牌数。",
+                alertResultNegative: "玩家 {name} 的胜墩不能为负数！",
+                alertResultSum: "全桌实际赢取总胜墩 ({total}) 不等于本局总牌数 ({maxCards} 张)！请检查胜墩输入。",
+                alertNeedAtLeastTwo: "至少要保留 2 位玩家！",
+                confirmResetScores: "确定要清空所有分数重开新局吗？（房间 QR Code 将保持不变，其他玩家无需重新扫描）",
+                alertResetDone: "已重开新局！所有分数已清空。",
+                confirmDeletePlayer: "确定移除「{name}」？过往局数里面这个人的分数都会一起删除。",
+                excelTotalScore: "总分数",
+                excelRankLabel: "第{rank}名",
+                docTitle: "📘 德国桥牌数位计分板工具指南",
+                docP1: "本网页是一个响应式的<strong>德国桥牌数位计分板</strong>，专为解决传统纸笔计分不便而开发的实用工具。",
+                docH3_1: "自动计分逻辑与防错机制",
+                docLi1: "<strong>顺序重排：</strong> 叫注界面遵循当局基本顺时针顺序（如ABCD）。“实际赢得墩数”界面则自动把最后一位（如D）移至最前方呈现（如DABC），完美符合首攻视角。",
+                docLi2: "<strong>限制位防错：</strong> 列表最后一位（🎯限制位）自动受到叫注数字拦截，防止叫出导致总数相符的数字。中途可自由拖拽管理座位人员。",
+                docP2: "数据本地存储，并支持 QR 共享与只读同步，免除繁琐的手动数学计算与隐私泄露风险。",
+                howToPlayTitle: "🃏 如何玩德国桥牌 (基本规则)",
+                howToPlayP1: "德国桥牌是一款考验预测能力与策略博弈的扑克牌游戏，通常由 4 人进行。游戏核心目标是精准预测自己每局能赢得多少“墩”。",
+                howToPlayH3_1: "1. 游戏流程与发牌规则",
+                howToPlayLi1: "<strong>动态牌数：</strong> 第一局每人发 1 张牌，第二局发 2 张，依此类推，直到发到人数上限（例如 4 人时最大发 13 张）。之后可以选择逐渐递减回 1 张。",
+                howToPlayLi2: "<strong>叫注：</strong> 看完牌后，由庄家开始顺时针叫注。最后一位叫注者（🎯 限制位/庄家）所叫的墩数，加上前面所有人叫的总和，<strong>绝对不能</strong>等于当局的发牌数。这确保了当局一定有人得分、有人扣分！",
+                howToPlayH3_2: "2. 出牌与胜负判定",
+                howToPlayLi3: "<strong>跟花：</strong> 由首攻玩家先出一张牌，其余玩家必须跟随相同花色。若无该花色，才可以出其他花色。",
+                howToPlayLi4: "<strong>赢得墩数：</strong> 在该墩中，出过“首攻花色”且点数最大（A 最大，2 最小）的玩家赢得该墩，并成为下一墩的首攻玩家。",
+                howToPlayH3_3: "3. 计分方式 (本系统会自动处理)",
+                howToPlayLi5: "<strong>预测成功 (中了)：</strong> 获得基础分 10 分 + (赢得墩数的二次方)。例如预测 2 墩且切切实实拿到 2 墩，可得 $10 + 2^2 = 14$ 分。",
+                howToPlayLi6: "<strong>预测失败 (爆了)：</strong> 扣除 (实际墩数与预测墩数差值) 的二次方。例如预测 3 墩但最后只拿 1 墩，差值为 2，将会被扣除 $2^2 = 4$ 分（即记 -4 分）。"
+            }
+        };
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const isReadOnly = urlParams.get('mode') === 'view';
+        const hostPeerId = urlParams.get('host');
+
+        let peer = null;
+        let connections = [];
+        let hostConn = null;
+        let currentLang = 'zh-HK';
+        let peerRetryCount = 0;
+
+        let pCount = 4, currentRound = 1;
+        let initialPlayers = [], sortedOrder = [], scoresHistory = [];
+        let editingRoundIndex = -1;
+        let dragSrcIndex = null;
+
+        const STORAGE_KEY = 'german_bridge_state_v1';
+
+        function saveGameState() {
+            const payload = {
+                pCount: pCount,
+                currentRound: currentRound,
+                initialPlayers: initialPlayers,
+                sortedOrder: sortedOrder,
+                scoresHistory: scoresHistory,
+                currentLang: currentLang
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
         }
-    };
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const isReadOnly = urlParams.get('mode') === 'view';
-    const hostPeerId = urlParams.get('host');
+        function loadGameState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return false;
 
-    let peer = null;
-    let connections = [];
-    let hostConn = null;
-    let currentLang = 'zh-HK';
-    let peerRetryCount = 0;
+                const state = JSON.parse(raw);
+                if (!state || !Array.isArray(state.initialPlayers) || !state.initialPlayers.length) return false;
 
-    let pCount = 4, currentRound = 1;
-    let initialPlayers = [], sortedOrder = [], scoresHistory = [];
-    let editingRoundIndex = -1;
-    let dragSrcIndex = null;
+                pCount = Number(state.pCount) || state.initialPlayers.length;
+                currentRound = Number(state.currentRound) || 1;
+                initialPlayers = state.initialPlayers;
+                sortedOrder = Array.isArray(state.sortedOrder) && state.sortedOrder.length ? state.sortedOrder : [...Array(pCount).keys()];
+                scoresHistory = Array.isArray(state.scoresHistory) ? state.scoresHistory : [];
+                if (state.currentLang && translations[state.currentLang]) {
+                    currentLang = state.currentLang;
+                }
 
-    function switchGlobalLanguage(lang) {
-        if (!translations[lang]) return;
-        currentLang = lang;
-        const t = translations[lang];
+                const playerCountSelect = document.getElementById('player-count');
+                if (playerCountSelect) playerCountSelect.value = String(pCount);
 
-        const metaDescription = document.querySelector('meta[name="description"]');
-        if (metaDescription) metaDescription.setAttribute('content', t.metaDescription);
-        const metaKeywords = document.querySelector('meta[name="keywords"]');
-        if (metaKeywords) metaKeywords.setAttribute('content', t.metaKeywords);
+                document.getElementById('setup-area').style.display = 'none';
+                document.getElementById('game-play-area').style.display = 'block';
+                return true;
+            } catch (err) {
+                console.error('Load game state failed:', err);
+                return false;
+            }
+        }
 
-        const pageTitle = document.getElementById('page-title');
-        if (pageTitle) pageTitle.innerText = t.title;
-        const mainHeading = document.getElementById('main-heading');
-        if (mainHeading) mainHeading.innerText = t.h1;
+        function switchGlobalLanguage(lang) {
+            if (!translations[lang]) return;
+            currentLang = lang;
+            const t = translations[lang];
 
-        const btnEn = document.getElementById('btn-en');
-        if (btnEn) btnEn.innerText = t.langEn;
-        const btnZhHK = document.getElementById('btn-zh-HK');
-        if (btnZhHK) btnZhHK.innerText = t.langZhHK;
-        const btnZhCN = document.getElementById('btn-zh-CN');
-        if (btnZhCN) btnZhCN.innerText = t.langZhCN;
+            const metaDescription = document.querySelector('meta[name="description"]');
+            if (metaDescription) metaDescription.setAttribute('content', t.metaDescription);
+            const metaKeywords = document.querySelector('meta[name="keywords"]');
+            if (metaKeywords) metaKeywords.setAttribute('content', t.metaKeywords);
 
-        const inputTab = document.getElementById('btn-input');
-        if (inputTab) inputTab.innerText = t.tabInput;
-        const boardTab = document.getElementById('btn-board');
-        if (boardTab) boardTab.innerText = t.tabBoard;
+            const pageTitle = document.getElementById('page-title');
+            if (pageTitle) pageTitle.innerText = t.title;
+            const mainHeading = document.getElementById('main-heading');
+            if (mainHeading) mainHeading.innerText = t.h1;
 
-        const roleNotice = document.getElementById('role-notice');
-        if (roleNotice) roleNotice.innerText = isReadOnly ? t.roleViewer : t.roleAdmin;
+            const btnEn = document.getElementById('btn-en');
+            if (btnEn) btnEn.innerText = t.langEn;
+            const btnZhHK = document.getElementById('btn-zh-HK');
+            if (btnZhHK) btnZhHK.innerText = t.langZhHK;
+            const btnZhCN = document.getElementById('btn-zh-CN');
+            if (btnZhCN) btnZhCN.innerText = t.langZhCN;
 
-        const setupPlayers = document.getElementById('player-count');
-        if (setupPlayers) setupPlayers.setAttribute('aria-label', t.setupPlayers);
+            const inputTab = document.getElementById('btn-input');
+            if (inputTab) inputTab.innerText = t.tabInput;
+            const boardTab = document.getElementById('btn-board');
+            if (boardTab) boardTab.innerText = t.tabBoard;
 
-        const labelPlayerCount = document.getElementById('label-player-count');
-        if (labelPlayerCount) labelPlayerCount.innerText = t.setupPlayers;
+            const roleNotice = document.getElementById('role-notice');
+            if (roleNotice) roleNotice.innerText = isReadOnly ? t.roleViewer : t.roleAdmin;
 
-        const labelNamesHelp = document.getElementById('label-names-help');
-        if (labelNamesHelp) labelNamesHelp.innerText = t.setupNames;
+            const setupPlayers = document.getElementById('player-count');
+            if (setupPlayers) setupPlayers.setAttribute('aria-label', t.setupPlayers);
 
-        const setupNames = document.getElementById('names-fields-box');
-        if (setupNames) setupNames.setAttribute('aria-label', t.setupNames);
+            const labelPlayerCount = document.getElementById('label-player-count');
+            if (labelPlayerCount) labelPlayerCount.innerText = t.setupPlayers;
 
-        const btnCreateGame = document.getElementById('btn-create-game');
-        if (btnCreateGame) btnCreateGame.innerText = t.btnCreateGame;
+            const labelNamesHelp = document.getElementById('label-names-help');
+            if (labelNamesHelp) labelNamesHelp.innerText = t.setupNames;
 
-        const btnManage = document.getElementById('btn-toggle-manage');
-        if (btnManage) btnManage.innerText = t.btnManagePlayers;
-        const manageTitle = document.getElementById('manage-title');
-        if (manageTitle) manageTitle.innerText = t.manageTitle;
-        const manageHelp = document.getElementById('manage-help');
-        if (manageHelp) manageHelp.innerText = t.manageHelp;
-        const newPlayerName = document.getElementById('new-player-name');
-        if (newPlayerName) newPlayerName.placeholder = t.newPlayerPlaceholder;
-        const btnAddPlayer = document.getElementById('btn-add-player');
-        if (btnAddPlayer) btnAddPlayer.innerText = t.btnAddPlayer;
+            const setupNames = document.getElementById('names-fields-box');
+            if (setupNames) setupNames.setAttribute('aria-label', t.setupNames);
 
-        const bidWrap = document.getElementById('bid-label-wrap');
-        if (bidWrap) bidWrap.innerHTML = `${t.labelBid} <span id="bid-hint" style="font-size:12px; color:#aaa;">${t.bidHint}</span>`;
-        const btnStartRound = document.getElementById('btn-start-round');
-        if (btnStartRound) btnStartRound.innerText = t.btnStartRound;
-        const resultWrap = document.getElementById('result-label-wrap');
-        if (resultWrap) resultWrap.innerHTML = `${t.labelResult} <span id="result-hint" style="font-size:12px; color:#aaa;">${t.resultHint}</span>`;
-        const btnEndRound = document.getElementById('btn-end-round');
-        if (btnEndRound) btnEndRound.innerText = t.btnEndRound;
-        const btnResetRound = document.getElementById('btn-reset-round');
-        if (btnResetRound) btnResetRound.innerText = t.btnResetRound;
-        const btnResetScores = document.getElementById('btn-reset-scores');
-        if (btnResetScores) btnResetScores.innerText = t.btnResetScores;
+            const btnCreateGame = document.getElementById('btn-create-game');
+            if (btnCreateGame) btnCreateGame.innerText = t.btnCreateGame;
 
-        const btnExport = document.getElementById('btn-export');
-        if (btnExport) btnExport.innerText = t.btnExport;
-        const qrButton = document.getElementById('qr-btn');
-        if (qrButton) qrButton.innerText = t.qrButton;
-        const copyBtn = document.getElementById('copy-link-btn');
-        if (copyBtn) copyBtn.innerText = t.copyLinkButton;
-        const boardRoundCol = document.getElementById('board-round-col');
-        if (boardRoundCol) boardRoundCol.innerText = t.boardRoundCol;
+            const btnManage = document.getElementById('btn-toggle-manage');
+            if (btnManage) btnManage.innerText = t.btnManagePlayers;
+            const manageTitle = document.getElementById('manage-title');
+            if (manageTitle) manageTitle.innerText = t.manageTitle;
+            const manageHelp = document.getElementById('manage-help');
+            if (manageHelp) manageHelp.innerText = t.manageHelp;
+            const newPlayerName = document.getElementById('new-player-name');
+            if (newPlayerName) newPlayerName.placeholder = t.newPlayerPlaceholder;
+            const btnAddPlayer = document.getElementById('btn-add-player');
+            if (btnAddPlayer) btnAddPlayer.innerText = t.btnAddPlayer;
 
-        const qrTitle = document.getElementById('qr-title');
-        if (qrTitle) qrTitle.innerText = t.qrTitle;
-        const qrHelp = document.getElementById('qr-help');
-        if (qrHelp) qrHelp.innerText = t.qrHelp;
-        const qrClose = document.getElementById('qr-close-btn');
-        if (qrClose) qrClose.innerText = t.closeText;
-        const saveEditBtn = document.getElementById('save-edit-btn');
-        if (saveEditBtn) saveEditBtn.innerText = t.saveEdit;
-        const cancelEditBtn = document.getElementById('cancel-edit-btn');
-        if (cancelEditBtn) cancelEditBtn.innerText = t.cancelEdit;
+            const bidWrap = document.getElementById('bid-label-wrap');
+            if (bidWrap) bidWrap.innerHTML = `${t.labelBid} <span id="bid-hint" style="font-size:12px; color:#aaa;">${t.bidHint}</span>`;
+            const btnStartRound = document.getElementById('btn-start-round');
+            if (btnStartRound) btnStartRound.innerText = t.btnStartRound;
+            const resultWrap = document.getElementById('result-label-wrap');
+            if (resultWrap) resultWrap.innerHTML = `${t.labelResult} <span id="result-hint" style="font-size:12px; color:#aaa;">${t.resultHint}</span>`;
+            const btnEndRound = document.getElementById('btn-end-round');
+            if (btnEndRound) btnEndRound.innerText = t.btnEndRound;
+            const btnResetRound = document.getElementById('btn-reset-round');
+            if (btnResetRound) btnResetRound.innerText = t.btnResetRound;
+            const btnResetScores = document.getElementById('btn-reset-scores');
+            if (btnResetScores) btnResetScores.innerText = t.btnResetScores;
 
-        document.getElementById('about-doc-section').innerHTML = `
+            const btnExport = document.getElementById('btn-export');
+            if (btnExport) btnExport.innerText = t.btnExport;
+            const qrButton = document.getElementById('qr-btn');
+            if (qrButton) qrButton.innerText = t.qrButton;
+            const copyBtn = document.getElementById('copy-link-btn');
+            if (copyBtn) copyBtn.innerText = t.copyLinkButton;
+            const boardRoundCol = document.getElementById('board-round-col');
+            if (boardRoundCol) boardRoundCol.innerText = t.boardRoundCol;
+
+            const qrTitle = document.getElementById('qr-title');
+            if (qrTitle) qrTitle.innerText = t.qrTitle;
+            const qrHelp = document.getElementById('qr-help');
+            if (qrHelp) qrHelp.innerText = t.qrHelp;
+            const qrClose = document.getElementById('qr-close-btn');
+            if (qrClose) qrClose.innerText = t.closeText;
+            const saveEditBtn = document.getElementById('save-edit-btn');
+            if (saveEditBtn) saveEditBtn.innerText = t.saveEdit;
+            const cancelEditBtn = document.getElementById('cancel-edit-btn');
+            if (cancelEditBtn) cancelEditBtn.innerText = t.cancelEdit;
+
+            document.getElementById('about-doc-section').innerHTML = `
             <details class="gb-details">
                 <summary class="gb-summary">${t.howToPlayTitle}</summary>
                 <div class="gb-details-content">
@@ -575,491 +1056,545 @@
             </details>
         `;
 
-        document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
-        const activeBtn = document.getElementById('btn-' + lang);
-        if (activeBtn) activeBtn.classList.add('active');
-        document.documentElement.setAttribute('lang', lang);
-        localStorage.setItem('gb-preferred-lang', lang);
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById('btn-' + lang);
+            if (activeBtn) activeBtn.classList.add('active');
+            document.documentElement.setAttribute('lang', lang);
+            localStorage.setItem('gb-preferred-lang', lang);
 
-        if (initialPlayers.length > 0) {
-            setupRoundUI();
-            renderScoreBoard();
-        } else {
-            initPlayerInputs();
+            if (initialPlayers.length > 0) {
+                setupRoundUI();
+                renderScoreBoard();
+            } else {
+                initPlayerInputs();
+            }
         }
-    }
 
-    window.onload = function() {
-        const savedLang = localStorage.getItem('gb-preferred-lang');
-        if (savedLang && translations[savedLang]) currentLang = savedLang;
-        initPlayerInputs();
-        switchGlobalLanguage(currentLang);
-        checkModeUI();
+        window.onload = function () {
+            const savedLang = localStorage.getItem('gb-preferred-lang');
+            if (savedLang && translations[savedLang]) currentLang = savedLang;
 
-        if (isReadOnly && hostPeerId) {
-            initClientP2P(hostPeerId);
-        } else {
-            initHostP2P();
-        }
-    };
+            const restored = loadGameState();
+            if (!restored) {
+                initPlayerInputs();
+            } else {
+                const countSelect = document.getElementById('player-count');
+                if (countSelect) countSelect.value = String(pCount);
+            }
 
-    function initHostP2P() {
-        const peerConfig = {
-            host: '0.peerjs.com',
-            port: 443,
-            secure: true,
-            debug: 2
+            switchGlobalLanguage(currentLang);
+            checkModeUI();
+
+            if (restored && initialPlayers.length > 0) {
+                renderScoreBoard();
+                if (scoresHistory.length > 0) {
+                    recalculateAllScores();
+                }
+            }
+
+            if (isReadOnly && hostPeerId) {
+                initClientP2P(hostPeerId);
+            } else {
+                initHostP2P();
+            }
         };
 
-        if (peer) {
-            peer.destroy();
+        function initHostP2P() {
+            const peerConfig = {
+                host: '0.peerjs.com',
+                port: 443,
+                secure: true,
+                debug: 2
+            };
+
+            if (peer) {
+                peer.destroy();
+            }
+
+            peer = new Peer(peerConfig);
+
+            peer.on('open', (id) => {
+                console.log('P2P Room ID established:', id);
+                peerRetryCount = 0;
+            });
+
+            peer.on('connection', (conn) => {
+                connections.push(conn);
+                conn.on('open', () => broadcastData());
+            });
+
+            peer.on('error', (err) => {
+                console.error('PeerJS Connection Error:', err);
+                const retryableTypes = ['disconnected', 'network', 'server-error', 'peer-unavailable'];
+                const t = translations[currentLang] || translations['zh-HK'];
+
+                if (retryableTypes.includes(err.type) && peerRetryCount < 2) {
+                    peerRetryCount += 1;
+                    console.warn(`Retrying PeerJS host setup (${peerRetryCount}/2) after error:`, err.type);
+                    setTimeout(() => initHostP2P(), 1500);
+                    return;
+                }
+
+                const message = t.peerError.replace('{type}', err.type || 'unknown');
+                alert(message);
+            });
         }
 
-        peer = new Peer(peerConfig);
+        function initClientP2P(targetHostId) {
+            peer = new Peer();
+            peer.on('open', () => {
+                hostConn = peer.connect(targetHostId);
+                hostConn.on('data', (data) => {
+                    pCount = data.pCount;
+                    currentRound = data.currentRound;
+                    initialPlayers = data.initialPlayers;
+                    sortedOrder = data.sortedOrder;
+                    scoresHistory = data.scoresHistory || [];
 
-        peer.on('open', (id) => {
-            console.log('P2P Room ID established:', id);
-            peerRetryCount = 0;
-        });
+                    document.getElementById('setup-area').style.display = 'none';
+                    document.getElementById('game-play-area').style.display = 'block';
+                    renderScoreBoard();
+                });
+            });
+        }
 
-        peer.on('connection', (conn) => {
-            connections.push(conn);
-            conn.on('open', () => broadcastData());
-        });
+        function broadcastData() {
+            if (isReadOnly || !connections.length) return;
+            const payload = {
+                pCount: pCount,
+                currentRound: currentRound,
+                initialPlayers: initialPlayers,
+                sortedOrder: sortedOrder,
+                scoresHistory: scoresHistory
+            };
+            connections.forEach(conn => {
+                if (conn.open) conn.send(payload);
+            });
+        }
 
-        peer.on('error', (err) => {
-            console.error('PeerJS Connection Error:', err);
-            const retryableTypes = ['disconnected', 'network', 'server-error', 'peer-unavailable'];
+        function checkModeUI() {
             const t = translations[currentLang] || translations['zh-HK'];
+            if (isReadOnly) {
+                document.getElementById('role-notice').innerText = t.roleViewer;
+                document.getElementById('role-notice').style.background = "#1a2634";
+                document.getElementById('role-notice').style.color = "#3498db";
+                document.getElementById('input-panel').style.display = "none";
+                document.getElementById('btn-input').style.display = "none";
+                document.getElementById('admin-tools').style.display = "none";
+                switchTab('board-panel');
+            }
+        }
 
-            if (retryableTypes.includes(err.type) && peerRetryCount < 2) {
-                peerRetryCount += 1;
-                console.warn(`Retrying PeerJS host setup (${peerRetryCount}/2) after error:`, err.type);
-                setTimeout(() => initHostP2P(), 1500);
+        function switchTab(tabId) {
+            document.getElementById('btn-input').classList.remove('active');
+            document.getElementById('btn-board').classList.remove('active');
+            document.getElementById('input-panel').classList.remove('active');
+            document.getElementById('board-panel').classList.remove('active');
+
+            if (tabId === 'input-panel') {
+                document.getElementById('btn-input').classList.add('active');
+                document.getElementById('input-panel').classList.add('active');
+            } else {
+                document.getElementById('btn-board').classList.add('active');
+                document.getElementById('board-panel').classList.add('active');
+                renderScoreBoard();
+            }
+        }
+
+        function initPlayerInputs() {
+            const t = translations[currentLang] || translations['zh-HK'];
+            pCount = parseInt(document.getElementById('player-count').value) || 4;
+            const box = document.getElementById('names-fields-box');
+            box.innerHTML = '';
+            for (let i = 0; i < pCount; i++) {
+                const defaultName = t.playerDefaultName.replace('{char}', String.fromCharCode(65 + i));
+                box.innerHTML += `<input type="text" id="p-name-in-${i}" value="${defaultName}">`;
+            }
+        }
+
+        function startNewGame() {
+            const t = translations[currentLang] || translations['zh-HK'];
+            pCount = parseInt(document.getElementById('player-count').value) || 4;
+            initialPlayers = []; sortedOrder = []; scoresHistory = []; currentRound = 1;
+            for (let i = 0; i < pCount; i++) {
+                let name = document.getElementById(`p-name-in-${i}`).value.trim();
+                const fallbackName = t.playerDefaultName.replace('{char}', String.fromCharCode(65 + i));
+                initialPlayers.push(name || fallbackName);
+                sortedOrder.push(i);
+            }
+            document.getElementById('setup-area').style.display = 'none';
+            document.getElementById('game-play-area').style.display = 'block';
+
+            setupRoundUI();
+            renderScoreBoard();
+            saveGameState();
+            broadcastData();
+        }
+
+        // 💡 保持房間 ID / QR Code，僅清空分數重新開始
+        function restartEntireGame() {
+            const t = translations[currentLang] || translations['zh-HK'];
+            if (!confirm(t.confirmResetScores)) return;
+
+            scoresHistory = [];
+            currentRound = 1;
+
+            sortedOrder = [];
+            for (let i = 0; i < pCount; i++) sortedOrder.push(i);
+
+            setupRoundUI();
+            renderScoreBoard();
+            saveGameState();
+            broadcastData();
+            alert(t.alertResetDone);
+        }
+
+        function getRoundSeatOrder(rd) {
+            let dealerIdx = (rd - 1) % pCount;
+            let order = [];
+            for (let i = 0; i < pCount; i++) order.push((dealerIdx + i) % pCount);
+            return order;
+        }
+
+        function getScrewPlayerIndexForRound(rd) {
+            let dealerIdx = (rd - 1) % pCount;
+            return (dealerIdx - 1 + pCount) % pCount;
+        }
+
+        function getResultSeatOrder(rd) {
+            let screwIdx = getScrewPlayerIndexForRound(rd);
+            let order = [];
+            for (let i = 0; i < pCount; i++) order.push((screwIdx + i) % pCount);
+            return order;
+        }
+
+        function getCurrentHandCards() {
+            let maxCards = Math.floor(52 / pCount);
+            return ((currentRound - 1) % maxCards) + 1;
+        }
+
+        function setupRoundUI() {
+            const t = translations[currentLang] || translations['zh-HK'];
+            let currentHandCards = getCurrentHandCards();
+            let dealerIdx = (currentRound - 1) % pCount;
+            let screwIdx = getScrewPlayerIndexForRound(currentRound);
+
+            document.getElementById('display-round-title').innerText = t.roundTitleTemplate.replace('{round}', currentRound).replace('{cards}', currentHandCards);
+            document.getElementById('display-dealer-name').innerText = t.dealerTipTemplate.replace('{name}', initialPlayers[dealerIdx]);
+
+            let bidSeatOrder = getRoundSeatOrder(currentRound);
+            let resultSeatOrder = getResultSeatOrder(currentRound);
+            const bidGrid = document.getElementById('grid-bid-inputs');
+            const resGrid = document.getElementById('grid-result-inputs');
+            bidGrid.innerHTML = ''; resGrid.innerHTML = '';
+
+            bidSeatOrder.forEach((idx) => {
+                let name = initialPlayers[idx];
+                let isDealer = (idx === dealerIdx), isScrew = (idx === screwIdx);
+                let labelTag = isDealer ? t.tagDealer : (isScrew ? t.tagLimit : '');
+                let labelClass = isDealer ? 'dealer-highlight' : (isScrew ? 'screw-highlight-txt' : '');
+                let inputClass = isDealer ? 'dealer-border' : (isScrew ? 'screw-highlight' : '');
+
+                bidGrid.innerHTML += `<div><div class="player-label ${labelClass}">${name}${labelTag}</div><input type="number" pattern="[0-9]*" class="mobile-input ${inputClass}" id="bid-${idx}" placeholder="0" oninput="onBidInput(${idx})"></div>`;
+            });
+
+            resultSeatOrder.forEach((idx) => {
+                let name = initialPlayers[idx];
+                let isDealer = (idx === dealerIdx), isScrew = (idx === screwIdx);
+                let labelTag = isDealer ? t.tagDealer : (isScrew ? t.tagLimit : '');
+                let labelClass = isDealer ? 'dealer-highlight' : (isScrew ? 'screw-highlight-txt' : '');
+                let inputClass = isDealer ? 'dealer-border' : (isScrew ? 'screw-highlight' : '');
+
+                resGrid.innerHTML += `<div><div class="player-label ${labelClass}">${name}${labelTag}</div><input type="number" pattern="[0-9]*" class="mobile-input ${inputClass}" id="res-${idx}" placeholder="0"></div>`;
+            });
+
+            document.getElementById('section-bid').style.opacity = "1";
+            document.getElementById('section-bid').style.pointerEvents = "auto";
+            document.getElementById('btn-start-round').style.display = "block";
+            document.getElementById('section-result').style.opacity = "0.4";
+            document.getElementById('section-result').style.pointerEvents = "none";
+            document.getElementById('btn-end-round').disabled = true;
+        }
+
+        function getBidValue(i) {
+            let bVal = document.getElementById(`bid-${i}`).value;
+            return bVal === '' ? 0 : parseInt(bVal, 10);
+        }
+
+        function getScrewPlayerIndex() {
+            return getScrewPlayerIndexForRound(currentRound);
+        }
+
+        // 螺絲位不能報令全桌總墩剛好等於本局牌數的那個數字（可爆墩，不可「剛好」）
+        function getScrewForbiddenBid() {
+            let maxCards = getCurrentHandCards();
+            let screwIdx = getScrewPlayerIndex();
+            let others = 0;
+            for (let i = 0; i < pCount; i++) {
+                if (i !== screwIdx) others += getBidValue(i);
+            }
+            return maxCards - others;
+        }
+
+        function onBidInput(playerIdx) {
+            const t = translations[currentLang] || translations['zh-HK'];
+            let maxCards = getCurrentHandCards();
+            let input = document.getElementById(`bid-${playerIdx}`);
+            let bidNum = input.value === '' ? 0 : parseInt(input.value, 10);
+
+            if (input.value !== '' && (isNaN(bidNum) || bidNum < 0)) {
+                input.value = '';
+                return;
+            }
+            if (bidNum > maxCards) {
+                alert(t.alertMaxCardsBid.replace('{maxCards}', maxCards));
+                input.value = '';
                 return;
             }
 
-            const message = t.peerError.replace('{type}', err.type || 'unknown');
-            alert(message);
-        });
-    }
+            let screwIdx = getScrewPlayerIndex();
+            let forbidden = getScrewForbiddenBid();
+            let screwInput = document.getElementById(`bid-${screwIdx}`);
+            if (!screwInput || screwInput.value === '') return;
 
-    function initClientP2P(targetHostId) {
-        peer = new Peer();
-        peer.on('open', () => {
-            hostConn = peer.connect(targetHostId);
-            hostConn.on('data', (data) => {
-                pCount = data.pCount;
-                currentRound = data.currentRound;
-                initialPlayers = data.initialPlayers;
-                sortedOrder = data.sortedOrder;
-                scoresHistory = data.scoresHistory || [];
-
-                document.getElementById('setup-area').style.display = 'none';
-                document.getElementById('game-play-area').style.display = 'block';
-                renderScoreBoard();
-            });
-        });
-    }
-
-    function broadcastData() {
-        if (isReadOnly || !connections.length) return;
-        const payload = {
-            pCount: pCount,
-            currentRound: currentRound,
-            initialPlayers: initialPlayers,
-            sortedOrder: sortedOrder,
-            scoresHistory: scoresHistory
-        };
-        connections.forEach(conn => {
-            if (conn.open) conn.send(payload);
-        });
-    }
-
-    function checkModeUI() {
-        const t = translations[currentLang] || translations['zh-HK'];
-        if (isReadOnly) {
-            document.getElementById('role-notice').innerText = t.roleViewer;
-            document.getElementById('role-notice').style.background = "#1a2634";
-            document.getElementById('role-notice').style.color = "#3498db";
-            document.getElementById('input-panel').style.display = "none";
-            document.getElementById('btn-input').style.display = "none";
-            document.getElementById('admin-tools').style.display = "none";
-            switchTab('board-panel');
-        }
-    }
-
-    function switchTab(tabId) {
-        document.getElementById('btn-input').classList.remove('active');
-        document.getElementById('btn-board').classList.remove('active');
-        document.getElementById('input-panel').classList.remove('active');
-        document.getElementById('board-panel').classList.remove('active');
-
-        if(tabId === 'input-panel') {
-            document.getElementById('btn-input').classList.add('active');
-            document.getElementById('input-panel').classList.add('active');
-        } else {
-            document.getElementById('btn-board').classList.add('active');
-            document.getElementById('board-panel').classList.add('active');
-            renderScoreBoard();
-        }
-    }
-
-    function initPlayerInputs() {
-        const t = translations[currentLang] || translations['zh-HK'];
-        pCount = parseInt(document.getElementById('player-count').value) || 4;
-        const box = document.getElementById('names-fields-box');
-        box.innerHTML = '';
-        for(let i=0; i<pCount; i++) {
-            const defaultName = t.playerDefaultName.replace('{char}', String.fromCharCode(65 + i));
-            box.innerHTML += `<input type="text" id="p-name-in-${i}" value="${defaultName}">`;
-        }
-    }
-
-    function startNewGame() {
-        const t = translations[currentLang] || translations['zh-HK'];
-        pCount = parseInt(document.getElementById('player-count').value) || 4;
-        initialPlayers = []; sortedOrder = []; scoresHistory = []; currentRound = 1;
-        for(let i=0; i<pCount; i++) {
-            let name = document.getElementById(`p-name-in-${i}`).value.trim();
-            const fallbackName = t.playerDefaultName.replace('{char}', String.fromCharCode(65 + i));
-            initialPlayers.push(name || fallbackName);
-            sortedOrder.push(i);
-        }
-        document.getElementById('setup-area').style.display = 'none';
-        document.getElementById('game-play-area').style.display = 'block';
-        
-        setupRoundUI();
-        renderScoreBoard();
-        broadcastData();
-    }
-
-    // 💡 保持房間 ID / QR Code，僅清空分數重新開始
-    function restartEntireGame() {
-        const t = translations[currentLang] || translations['zh-HK'];
-        if(!confirm(t.confirmResetScores)) return;
-        
-        scoresHistory = [];
-        currentRound = 1;
-        
-        sortedOrder = [];
-        for(let i=0; i<pCount; i++) sortedOrder.push(i);
-
-        setupRoundUI();
-        renderScoreBoard();
-        broadcastData();
-        alert(t.alertResetDone);
-    }
-
-    function getRoundSeatOrder(rd) {
-        let dealerIdx = (rd - 1) % pCount;
-        let order = [];
-        for (let i = 0; i < pCount; i++) order.push((dealerIdx + i) % pCount);
-        return order;
-    }
-
-    function getScrewPlayerIndexForRound(rd) {
-        let dealerIdx = (rd - 1) % pCount;
-        return (dealerIdx - 1 + pCount) % pCount;
-    }
-
-    function getResultSeatOrder(rd) {
-        let screwIdx = getScrewPlayerIndexForRound(rd);
-        let order = [];
-        for (let i = 0; i < pCount; i++) order.push((screwIdx + i) % pCount);
-        return order;
-    }
-
-    function getCurrentHandCards() {
-        let maxCards = Math.floor(52 / pCount);
-        return ((currentRound - 1) % maxCards) + 1;
-    }
-
-    function setupRoundUI() {
-        const t = translations[currentLang] || translations['zh-HK'];
-        let currentHandCards = getCurrentHandCards();
-        let dealerIdx = (currentRound - 1) % pCount;
-        let screwIdx = getScrewPlayerIndexForRound(currentRound);
-
-        document.getElementById('display-round-title').innerText = t.roundTitleTemplate.replace('{round}', currentRound).replace('{cards}', currentHandCards);
-        document.getElementById('display-dealer-name').innerText = t.dealerTipTemplate.replace('{name}', initialPlayers[dealerIdx]);
-
-        let bidSeatOrder = getRoundSeatOrder(currentRound);
-        let resultSeatOrder = getResultSeatOrder(currentRound);
-        const bidGrid = document.getElementById('grid-bid-inputs');
-        const resGrid = document.getElementById('grid-result-inputs');
-        bidGrid.innerHTML = ''; resGrid.innerHTML = '';
-
-        bidSeatOrder.forEach((idx) => {
-            let name = initialPlayers[idx];
-            let isDealer = (idx === dealerIdx), isScrew = (idx === screwIdx);
-            let labelTag = isDealer ? t.tagDealer : (isScrew ? t.tagLimit : '');
-            let labelClass = isDealer ? 'dealer-highlight' : (isScrew ? 'screw-highlight-txt' : '');
-            let inputClass = isDealer ? 'dealer-border' : (isScrew ? 'screw-highlight' : '');
-
-            bidGrid.innerHTML += `<div><div class="player-label ${labelClass}">${name}${labelTag}</div><input type="number" pattern="[0-9]*" class="mobile-input ${inputClass}" id="bid-${idx}" placeholder="0" oninput="onBidInput(${idx})"></div>`;
-        });
-
-        resultSeatOrder.forEach((idx) => {
-            let name = initialPlayers[idx];
-            let isDealer = (idx === dealerIdx), isScrew = (idx === screwIdx);
-            let labelTag = isDealer ? t.tagDealer : (isScrew ? t.tagLimit : '');
-            let labelClass = isDealer ? 'dealer-highlight' : (isScrew ? 'screw-highlight-txt' : '');
-            let inputClass = isDealer ? 'dealer-border' : (isScrew ? 'screw-highlight' : '');
-
-            resGrid.innerHTML += `<div><div class="player-label ${labelClass}">${name}${labelTag}</div><input type="number" pattern="[0-9]*" class="mobile-input ${inputClass}" id="res-${idx}" placeholder="0"></div>`;
-        });
-
-        document.getElementById('section-bid').style.opacity = "1";
-        document.getElementById('section-bid').style.pointerEvents = "auto";
-        document.getElementById('btn-start-round').style.display = "block";
-        document.getElementById('section-result').style.opacity = "0.4";
-        document.getElementById('section-result').style.pointerEvents = "none";
-        document.getElementById('btn-end-round').disabled = true;
-    }
-
-    function getBidValue(i) {
-        let bVal = document.getElementById(`bid-${i}`).value;
-        return bVal === '' ? 0 : parseInt(bVal, 10);
-    }
-
-    function getScrewPlayerIndex() {
-        return getScrewPlayerIndexForRound(currentRound);
-    }
-
-    // 螺絲位不能報令全桌總墩剛好等於本局牌數的那個數字（可爆墩，不可「剛好」）
-    function getScrewForbiddenBid() {
-        let maxCards = getCurrentHandCards();
-        let screwIdx = getScrewPlayerIndex();
-        let others = 0;
-        for (let i = 0; i < pCount; i++) {
-            if (i !== screwIdx) others += getBidValue(i);
-        }
-        return maxCards - others;
-    }
-
-    function onBidInput(playerIdx) {
-        const t = translations[currentLang] || translations['zh-HK'];
-        let maxCards = getCurrentHandCards();
-        let input = document.getElementById(`bid-${playerIdx}`);
-        let bidNum = input.value === '' ? 0 : parseInt(input.value, 10);
-
-        if (input.value !== '' && (isNaN(bidNum) || bidNum < 0)) {
-            input.value = '';
-            return;
-        }
-        if (bidNum > maxCards) {
-            alert(t.alertMaxCardsBid.replace('{maxCards}', maxCards));
-            input.value = '';
-            return;
-        }
-
-        let screwIdx = getScrewPlayerIndex();
-        let forbidden = getScrewForbiddenBid();
-        let screwInput = document.getElementById(`bid-${screwIdx}`);
-        if (!screwInput || screwInput.value === '') return;
-
-        let screwBid = parseInt(screwInput.value, 10);
-        if (forbidden >= 0 && forbidden <= maxCards && screwBid === forbidden) {
-            alert(t.alertScrewForbidden.replace('{forbidden}', forbidden).replace('{maxCards}', maxCards));
-            screwInput.value = '';
-        }
-    }
-
-    // 💡 報墩邏輯校驗：單人不可超本局牌數；全桌不可剛好等於牌數（可少可爆）
-    function lockBids() {
-        const t = translations[currentLang] || translations['zh-HK'];
-        let maxCards = getCurrentHandCards();
-        let totalBid = 0;
-
-        for(let i=0; i<pCount; i++) {
-            let bidNum = getBidValue(i);
-
-            if(bidNum < 0 || isNaN(bidNum)) { alert(t.alertBidsNegative.replace('{name}', initialPlayers[i])); return; }
-            if(bidNum > maxCards) { alert(t.alertMaxCardsBid.replace('{maxCards}', maxCards)); return; }
-            totalBid += bidNum;
-        }
-
-        if(totalBid === maxCards) {
-            alert(t.alertTotalBidMatches.replace('{total}', totalBid).replace('{maxCards}', maxCards));
-            return;
-        }
-
-        document.getElementById('section-bid').style.opacity = "0.4";
-        document.getElementById('section-bid').style.pointerEvents = "none";
-        document.getElementById('btn-start-round').style.display = "none";
-        document.getElementById('section-result').style.opacity = "1";
-        document.getElementById('section-result').style.pointerEvents = "auto";
-        document.getElementById('btn-end-round').disabled = false;
-    }
-
-    // 💡 勝墩邏輯校驗：勝墩總數必須等於總牌數
-    function submitResults() {
-        const t = translations[currentLang] || translations['zh-HK'];
-        let maxCards = getCurrentHandCards();
-        let bids = [], results = [], totalResult = 0;
-
-        for(let i=0; i<pCount; i++) {
-            let bVal = document.getElementById(`bid-${i}`).value;
-            let rVal = document.getElementById(`res-${i}`).value;
-
-            let bNum = bVal === '' ? 0 : parseInt(bVal);
-            let rNum = rVal === '' ? 0 : parseInt(rVal);
-
-            if(rNum < 0) { alert(t.alertResultNegative.replace('{name}', initialPlayers[i])); return; }
-            bids.push(bNum);
-            results.push(rNum);
-            totalResult += rNum;
-        }
-
-        if(totalResult !== maxCards) {
-            alert(t.alertResultSum.replace('{total}', totalResult).replace('{maxCards}', maxCards));
-            return;
-        }
-
-        scoresHistory.push({ round: currentRound, bids: bids, results: results });
-        recalculateAllScores();
-        currentRound++;
-        setupRoundUI();
-        renderScoreBoard(); // 桌面版即時渲染
-        broadcastData();
-    }
-
-    function recalculateAllScores() {
-        let runningTotals = Array(pCount).fill(0);
-
-        scoresHistory.forEach(h => {
-            let roundScores = [];
-            for(let i=0; i<pCount; i++) {
-                let b = h.bids[i], r = h.results[i], score = 0;
-                if(b === r) score = 10 + Math.pow(r, 2);
-                else score = -Math.pow(Math.abs(r - b), 2);
-                
-                roundScores.push(score);
-                runningTotals[i] += score;
+            let screwBid = parseInt(screwInput.value, 10);
+            if (forbidden >= 0 && forbidden <= maxCards && screwBid === forbidden) {
+                alert(t.alertScrewForbidden.replace('{forbidden}', forbidden).replace('{maxCards}', maxCards));
+                screwInput.value = '';
             }
-            h.roundScores = roundScores;
-            h.runningTotals = [...runningTotals];
-        });
+        }
 
-        let tempArr = [];
-        for(let i=0; i<pCount; i++) tempArr.push({ id: i, total: runningTotals[i] });
-        tempArr.sort((a, b) => b.total - a.total);
-        sortedOrder = tempArr.map(item => item.id);
-    }
+        // 💡 報墩邏輯校驗：單人不可超本局牌數；全桌不可剛好等於牌數（可少可爆）
+        function lockBids() {
+            const t = translations[currentLang] || translations['zh-HK'];
+            let maxCards = getCurrentHandCards();
+            let totalBid = 0;
 
-    function renderScoreBoard() {
-        const t = translations[currentLang] || translations['zh-HK'];
-        const thr = document.getElementById('board-th-row');
-        thr.innerHTML = `<th style="width:70px;">${t.boardRoundCol}</th>`;
-        sortedOrder.forEach((pId) => { thr.innerHTML += `<th>${initialPlayers[pId]}</th>`; });
+            for (let i = 0; i < pCount; i++) {
+                let bidNum = getBidValue(i);
 
-        const tbody = document.getElementById('board-tbody');
-        tbody.innerHTML = '';
-        if(scoresHistory.length === 0) return;
+                if (bidNum < 0 || isNaN(bidNum)) { alert(t.alertBidsNegative.replace('{name}', initialPlayers[i])); return; }
+                if (bidNum > maxCards) { alert(t.alertMaxCardsBid.replace('{maxCards}', maxCards)); return; }
+                totalBid += bidNum;
+            }
 
-        scoresHistory.forEach((h, idx) => {
-            let editBtnHtml = isReadOnly ? '' : `<button class="edit-round-btn" onclick="openEditModal(${idx})">${t.editModalTitle}</button>`;
-            let rowHtml = `<tr><td>${h.round}${editBtnHtml}</td>`;
-            sortedOrder.forEach(pId => {
-                rowHtml += `<td>${h.runningTotals[pId]}<br><small style="color:#888;">(${h.bids[pId]}|${h.results[pId]})</small></td>`;
+            if (totalBid === maxCards) {
+                alert(t.alertTotalBidMatches.replace('{total}', totalBid).replace('{maxCards}', maxCards));
+                return;
+            }
+
+            document.getElementById('section-bid').style.opacity = "0.4";
+            document.getElementById('section-bid').style.pointerEvents = "none";
+            document.getElementById('btn-start-round').style.display = "none";
+            document.getElementById('section-result').style.opacity = "1";
+            document.getElementById('section-result').style.pointerEvents = "auto";
+            document.getElementById('btn-end-round').disabled = false;
+        }
+
+        // 💡 勝墩邏輯校驗：勝墩總數必須等於總牌數
+        function submitResults() {
+            const t = translations[currentLang] || translations['zh-HK'];
+            let maxCards = getCurrentHandCards();
+            let bids = [], results = [], totalResult = 0;
+
+            for (let i = 0; i < pCount; i++) {
+                let bVal = document.getElementById(`bid-${i}`).value;
+                let rVal = document.getElementById(`res-${i}`).value;
+
+                let bNum = bVal === '' ? 0 : parseInt(bVal);
+                let rNum = rVal === '' ? 0 : parseInt(rVal);
+
+                if (rNum < 0) { alert(t.alertResultNegative.replace('{name}', initialPlayers[i])); return; }
+                bids.push(bNum);
+                results.push(rNum);
+                totalResult += rNum;
+            }
+
+            if (totalResult !== maxCards) {
+                alert(t.alertResultSum.replace('{total}', totalResult).replace('{maxCards}', maxCards));
+                return;
+            }
+
+            scoresHistory.push({ round: currentRound, bids: bids, results: results });
+            recalculateAllScores();
+            currentRound++;
+            setupRoundUI();
+            renderScoreBoard(); // 桌面版即時渲染
+            saveGameState();
+            broadcastData();
+        }
+
+        function recalculateAllScores() {
+            let runningTotals = Array(pCount).fill(0);
+
+            scoresHistory.forEach(h => {
+                let roundScores = [];
+                for (let i = 0; i < pCount; i++) {
+                    let b = h.bids[i], r = h.results[i], score = 0;
+                    if (b === r) score = 10 + Math.pow(r, 2);
+                    else score = -Math.pow(Math.abs(r - b), 2);
+
+                    roundScores.push(score);
+                    runningTotals[i] += score;
+                }
+                h.roundScores = roundScores;
+                h.runningTotals = [...runningTotals];
             });
-            rowHtml += `</tr>`;
-            tbody.innerHTML += rowHtml;
-        });
-    }
 
-    function openEditModal(roundIdx) {
-        const t = translations[currentLang] || translations['zh-HK'];
-        editingRoundIndex = roundIdx;
-        let record = scoresHistory[roundIdx];
-        document.getElementById('edit-modal-title').innerText = `${t.editModalTitle} - ${record.round}`;
-        
-        let container = document.getElementById('modal-inputs-area');
-        container.innerHTML = '';
-        
-        for(let i=0; i<pCount; i++) {
-            container.innerHTML += `
+            let tempArr = [];
+            for (let i = 0; i < pCount; i++) tempArr.push({ id: i, total: runningTotals[i] });
+            tempArr.sort((a, b) => b.total - a.total);
+            sortedOrder = tempArr.map(item => item.id);
+        }
+
+        function renderScoreBoard() {
+            const t = translations[currentLang] || translations['zh-HK'];
+            const thr = document.getElementById('board-th-row');
+            thr.innerHTML = `<th style="width:70px;">${t.boardRoundCol}</th>`;
+            sortedOrder.forEach((pId) => { thr.innerHTML += `<th>${initialPlayers[pId]}</th>`; });
+
+            const tbody = document.getElementById('board-tbody');
+            tbody.innerHTML = '';
+            if (scoresHistory.length === 0) return;
+
+            scoresHistory.forEach((h, idx) => {
+                let editBtnHtml = isReadOnly ? '' : `<button class="edit-round-btn" onclick="openEditModal(${idx})">${t.editModalTitle}</button>`;
+                let rowHtml = `<tr><td>${h.round}${editBtnHtml}</td>`;
+                sortedOrder.forEach(pId => {
+                    rowHtml += `<td>${h.runningTotals[pId]}<br><small style="color:#888;">(${h.bids[pId]}|${h.results[pId]})</small></td>`;
+                });
+                rowHtml += `</tr>`;
+                tbody.innerHTML += rowHtml;
+            });
+        }
+
+        function openEditModal(roundIdx) {
+            const t = translations[currentLang] || translations['zh-HK'];
+            editingRoundIndex = roundIdx;
+            let record = scoresHistory[roundIdx];
+            document.getElementById('edit-modal-title').innerText = `${t.editModalTitle} - ${record.round}`;
+
+            let container = document.getElementById('modal-inputs-area');
+            container.innerHTML = '';
+
+            for (let i = 0; i < pCount; i++) {
+                container.innerHTML += `
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; font-size:14px;">
                     <span style="width:90px; text-align:left; font-weight:bold;">${initialPlayers[i]}</span>
                     <span>${t.labelBid}: <input type="number" id="edit-bid-${i}" value="${record.bids[i]}" style="width:55px; text-align:center; padding:6px; border-radius:4px; border:1px solid #444; background:#222; color:#fff;"></span>
                     <span>${t.labelResult}: <input type="number" id="edit-res-${i}" value="${record.results[i]}" style="width:55px; text-align:center; padding:6px; border-radius:4px; border:1px solid #444; background:#222; color:#fff;"></span>
                 </div>`;
+            }
+            document.getElementById('edit-modal').style.display = 'block';
         }
-        document.getElementById('edit-modal').style.display = 'block';
-    }
 
-    function saveEditedRound() {
-        if(editingRoundIndex < 0) return;
-        let newBids = [], newResults = [];
-        for(let i=0; i<pCount; i++) {
-            let bVal = document.getElementById(`edit-bid-${i}`).value;
-            let rVal = document.getElementById(`edit-res-${i}`).value;
-            newBids.push(bVal === '' ? 0 : parseInt(bVal));
-            newResults.push(rVal === '' ? 0 : parseInt(rVal));
+        function saveEditedRound() {
+            if (editingRoundIndex < 0) return;
+
+            const record = scoresHistory[editingRoundIndex];
+            if (!record) return;
+
+            const maxCards = Math.floor(52 / pCount);
+            const roundCards = ((record.round - 1) % maxCards) + 1;
+
+            let newBids = [], newResults = [], totalBid = 0, totalResult = 0;
+            for (let i = 0; i < pCount; i++) {
+                let bVal = document.getElementById(`edit-bid-${i}`).value;
+                let rVal = document.getElementById(`edit-res-${i}`).value;
+                let bNum = bVal === '' ? 0 : parseInt(bVal, 10);
+                let rNum = rVal === '' ? 0 : parseInt(rVal, 10);
+
+                if (isNaN(bNum) || bNum < 0) {
+                    alert('報墩不能為負數或空白。');
+                    return;
+                }
+                if (isNaN(rNum) || rNum < 0) {
+                    alert('勝墩不能為負數或空白。');
+                    return;
+                }
+                if (bNum > roundCards) {
+                    alert(`單人報墩不能超過本局總牌數 (${roundCards} 張)。`);
+                    return;
+                }
+
+                newBids.push(bNum);
+                newResults.push(rNum);
+                totalBid += bNum;
+                totalResult += rNum;
+            }
+
+            if (totalBid === roundCards) {
+                alert(`全桌總報墩不能剛好等於本局牌數 (${roundCards} 張)。`);
+                return;
+            }
+
+            if (totalResult !== roundCards) {
+                alert(`全桌實際勝墩總數必須等於本局牌數 (${roundCards} 張)。`);
+                return;
+            }
+
+            scoresHistory[editingRoundIndex].bids = newBids;
+            scoresHistory[editingRoundIndex].results = newResults;
+
+            recalculateAllScores();
+            renderScoreBoard();
+            saveGameState();
+            broadcastData();
+            closeEditModal();
+            alert(`Round ${scoresHistory[editingRoundIndex].round} updated and synced.`);
         }
-        
-        scoresHistory[editingRoundIndex].bids = newBids;
-        scoresHistory[editingRoundIndex].results = newResults;
-        
-        recalculateAllScores();
-        renderScoreBoard();
-        broadcastData();
-        closeEditModal();
-        alert(`Round ${scoresHistory[editingRoundIndex].round} updated and synced.`);
-    }
 
-    function closeEditModal() { document.getElementById('edit-modal').style.display = 'none'; }
+        function closeEditModal() { document.getElementById('edit-modal').style.display = 'none'; }
 
-    function getReadOnlyURL() {
-        let baseUrl = window.location.origin + window.location.pathname;
-        return `${baseUrl}?mode=view&host=${peer.id}`;
-    }
-
-    function showQRCodeModal() {
-        const t = translations[currentLang] || translations['zh-HK'];
-        if (!peer || !peer.id) {
-            alert(t.peerWaiting);
-            return;
+        function getReadOnlyURL() {
+            let baseUrl = window.location.origin + window.location.pathname;
+            return `${baseUrl}?mode=view&host=${peer.id}`;
         }
-        let viewUrl = getReadOnlyURL();
-        let box = document.getElementById('qrcode-box');
-        box.innerHTML = ''; 
 
-        new QRCode(box, { text: viewUrl, width: 200, height: 200 });
-        document.getElementById('qr-modal').style.display = 'block';
-    }
+        function showQRCodeModal() {
+            const t = translations[currentLang] || translations['zh-HK'];
+            if (!peer || !peer.id) {
+                alert(t.peerWaiting);
+                return;
+            }
+            let viewUrl = getReadOnlyURL();
+            let box = document.getElementById('qrcode-box');
+            box.innerHTML = '';
 
-    function closeQRModal() { document.getElementById('qr-modal').style.display = 'none'; }
-
-    function copyReadOnlyLink() {
-        const t = translations[currentLang] || translations['zh-HK'];
-        if (!peer || !peer.id) {
-            alert(t.peerWaiting);
-            return;
+            new QRCode(box, { text: viewUrl, width: 200, height: 200 });
+            document.getElementById('qr-modal').style.display = 'block';
         }
-        navigator.clipboard.writeText(getReadOnlyURL()).then(() => {
-            alert("已複製專屬 P2P 唯讀連結！");
-        });
-    }
 
-    function resetCurrentRound() { setupRoundUI(); }
+        function closeQRModal() { document.getElementById('qr-modal').style.display = 'none'; }
 
-    function toggleManagePlayers() {
-        const box = document.getElementById('manage-players-box');
-        if (box.style.display === 'block') {
-            box.style.display = 'none';
-        } else {
-            box.style.display = 'block';
-            renderManagePlayers();
+        function copyReadOnlyLink() {
+            const t = translations[currentLang] || translations['zh-HK'];
+            if (!peer || !peer.id) {
+                alert(t.peerWaiting);
+                return;
+            }
+            navigator.clipboard.writeText(getReadOnlyURL()).then(() => {
+                alert("已複製專屬 P2P 唯讀連結！");
+            });
         }
-    }
 
-    function renderManagePlayers() {
-        const list = document.getElementById('manage-drag-list');
-        list.innerHTML = '';
-        initialPlayers.forEach((name, i) => {
-            list.innerHTML += `
+        function resetCurrentRound() { setupRoundUI(); }
+
+        function toggleManagePlayers() {
+            const box = document.getElementById('manage-players-box');
+            if (box.style.display === 'block') {
+                box.style.display = 'none';
+            } else {
+                box.style.display = 'block';
+                renderManagePlayers();
+            }
+        }
+
+        function renderManagePlayers() {
+            const list = document.getElementById('manage-drag-list');
+            list.innerHTML = '';
+            initialPlayers.forEach((name, i) => {
+                list.innerHTML += `
                 <div class="drag-item" draggable="true"
                      ondragstart="handleDragStart(event, ${i})"
                      ondragover="handleDragOver(event)"
@@ -1069,139 +1604,142 @@
                     <input type="text" value="${name.replace(/"/g, '&quot;')}" onchange="renamePlayer(${i}, this.value)">
                     <button type="button" class="delete-p-btn" onclick="deletePlayer(${i})" title="移除玩家">❌</button>
                 </div>`;
-        });
-    }
-
-    function afterRosterChange() {
-        pCount = initialPlayers.length;
-        if (scoresHistory.length === 0) {
-            sortedOrder = [];
-            for (let i = 0; i < pCount; i++) sortedOrder.push(i);
-        } else {
-            recalculateAllScores();
-        }
-        renderManagePlayers();
-        setupRoundUI();
-        renderScoreBoard();
-        broadcastData();
-    }
-
-    function swapPlayerSlots(i, j) {
-        [initialPlayers[i], initialPlayers[j]] = [initialPlayers[j], initialPlayers[i]];
-        scoresHistory.forEach(h => {
-            [h.bids[i], h.bids[j]] = [h.bids[j], h.bids[i]];
-            [h.results[i], h.results[j]] = [h.results[j], h.results[i]];
-        });
-    }
-
-    function handleDragStart(e, index) {
-        dragSrcIndex = index;
-        e.dataTransfer.effectAllowed = 'move';
-    }
-
-    function handleDragOver(e) { e.preventDefault(); }
-
-    function handleDrop(e, targetIndex) {
-        e.preventDefault();
-        if (dragSrcIndex === null || dragSrcIndex === targetIndex) return;
-        const step = dragSrcIndex < targetIndex ? 1 : -1;
-        for (let i = dragSrcIndex; i !== targetIndex; i += step) swapPlayerSlots(i, i + step);
-        dragSrcIndex = null;
-        afterRosterChange();
-    }
-
-    function movePlayer(index, dir) {
-        let target = index + dir;
-        if (target < 0 || target >= pCount) return;
-        swapPlayerSlots(index, target);
-        afterRosterChange();
-    }
-
-    function renamePlayer(index, newName) {
-        let name = (newName || '').trim();
-        if (!name) {
-            renderManagePlayers();
-            return;
-        }
-        initialPlayers[index] = name;
-        setupRoundUI();
-        renderScoreBoard();
-        broadcastData();
-    }
-
-    function deletePlayer(index) {
-        const t = translations[currentLang] || translations['zh-HK'];
-        if (initialPlayers.length <= 2) {
-            alert(t.alertNeedAtLeastTwo);
-            return;
-        }
-        if (scoresHistory.length > 0 && !confirm(t.confirmDeletePlayer.replace('{name}', initialPlayers[index]))) return;
-        initialPlayers.splice(index, 1);
-        scoresHistory.forEach(h => {
-            h.bids.splice(index, 1);
-            h.results.splice(index, 1);
-        });
-        afterRosterChange();
-    }
-
-    function addNewPlayer() {
-        const input = document.getElementById('new-player-name');
-        let name = input.value.trim();
-        if (!name) return;
-        initialPlayers.push(name);
-        scoresHistory.forEach(h => {
-            h.bids.push(0);
-            h.results.push(0);
-        });
-        input.value = '';
-        afterRosterChange();
-    }
-
-    function csvCell(value) {
-        let s = String(value ?? '');
-        if (/[",\n]/.test(s)) s = `"${s.replace(/"/g, '""')}"`;
-        return s;
-    }
-
-    function exportToExcel() {
-        if (scoresHistory.length === 0) {
-            alert('尚未有局數記錄可匯出。請先完成至少一局。');
-            return;
-        }
-        let order = sortedOrder.length === pCount ? sortedOrder : [...Array(pCount).keys()];
-        let header = ['局'];
-        order.forEach((pId, rank) => {
-            header.push(`${initialPlayers[pId]} (第${rank + 1}名)`);
-        });
-        let lines = [header.map(csvCell).join(',')];
-
-        scoresHistory.forEach(h => {
-            let row = [h.round];
-            order.forEach(pId => {
-                let bid = h.bids[pId] ?? '-';
-                let res = h.results[pId] ?? '-';
-                let tot = h.runningTotals ? h.runningTotals[pId] : '';
-                row.push(`${tot} (${bid}|${res})`);
             });
-            lines.push(row.map(csvCell).join(','));
-        });
+        }
 
-        let last = scoresHistory[scoresHistory.length - 1];
-        let totalRow = ['總分數'];
-        order.forEach(pId => totalRow.push(last.runningTotals[pId]));
-        lines.push(totalRow.map(csvCell).join(','));
+        function afterRosterChange() {
+            pCount = initialPlayers.length;
+            if (scoresHistory.length === 0) {
+                sortedOrder = [];
+                for (let i = 0; i < pCount; i++) sortedOrder.push(i);
+            } else {
+                recalculateAllScores();
+            }
+            renderManagePlayers();
+            setupRoundUI();
+            renderScoreBoard();
+            saveGameState();
+            broadcastData();
+        }
 
-        const csvContent = lines.join('\r\n');
-        const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `german_bridge_${new Date().toISOString().slice(0, 10)}.csv`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    }
-</script>
+        function swapPlayerSlots(i, j) {
+            [initialPlayers[i], initialPlayers[j]] = [initialPlayers[j], initialPlayers[i]];
+            scoresHistory.forEach(h => {
+                [h.bids[i], h.bids[j]] = [h.bids[j], h.bids[i]];
+                [h.results[i], h.results[j]] = [h.results[j], h.results[i]];
+            });
+        }
+
+        function handleDragStart(e, index) {
+            dragSrcIndex = index;
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragOver(e) { e.preventDefault(); }
+
+        function handleDrop(e, targetIndex) {
+            e.preventDefault();
+            if (dragSrcIndex === null || dragSrcIndex === targetIndex) return;
+            const step = dragSrcIndex < targetIndex ? 1 : -1;
+            for (let i = dragSrcIndex; i !== targetIndex; i += step) swapPlayerSlots(i, i + step);
+            dragSrcIndex = null;
+            afterRosterChange();
+        }
+
+        function movePlayer(index, dir) {
+            let target = index + dir;
+            if (target < 0 || target >= pCount) return;
+            swapPlayerSlots(index, target);
+            afterRosterChange();
+        }
+
+        function renamePlayer(index, newName) {
+            let name = (newName || '').trim();
+            if (!name) {
+                renderManagePlayers();
+                return;
+            }
+            initialPlayers[index] = name;
+            setupRoundUI();
+            renderScoreBoard();
+            saveGameState();
+            broadcastData();
+        }
+
+        function deletePlayer(index) {
+            const t = translations[currentLang] || translations['zh-HK'];
+            if (initialPlayers.length <= 2) {
+                alert(t.alertNeedAtLeastTwo);
+                return;
+            }
+            if (scoresHistory.length > 0 && !confirm(t.confirmDeletePlayer.replace('{name}', initialPlayers[index]))) return;
+            initialPlayers.splice(index, 1);
+            scoresHistory.forEach(h => {
+                h.bids.splice(index, 1);
+                h.results.splice(index, 1);
+            });
+            afterRosterChange();
+        }
+
+        function addNewPlayer() {
+            const input = document.getElementById('new-player-name');
+            let name = input.value.trim();
+            if (!name) return;
+            initialPlayers.push(name);
+            scoresHistory.forEach(h => {
+                h.bids.push(0);
+                h.results.push(0);
+            });
+            input.value = '';
+            afterRosterChange();
+        }
+
+        function csvCell(value) {
+            let s = String(value ?? '');
+            if (/[",\n]/.test(s)) s = `"${s.replace(/"/g, '""')}"`;
+            return s;
+        }
+
+        function exportToExcel() {
+            if (scoresHistory.length === 0) {
+                alert('尚未有局數記錄可匯出。請先完成至少一局。');
+                return;
+            }
+            let order = sortedOrder.length === pCount ? sortedOrder : [...Array(pCount).keys()];
+            let header = ['局'];
+            order.forEach((pId, rank) => {
+                header.push(`${initialPlayers[pId]} (第${rank + 1}名)`);
+            });
+            let lines = [header.map(csvCell).join(',')];
+
+            scoresHistory.forEach(h => {
+                let row = [h.round];
+                order.forEach(pId => {
+                    let bid = h.bids[pId] ?? '-';
+                    let res = h.results[pId] ?? '-';
+                    let tot = h.runningTotals ? h.runningTotals[pId] : '';
+                    row.push(`${tot} (${bid}|${res})`);
+                });
+                lines.push(row.map(csvCell).join(','));
+            });
+
+            let last = scoresHistory[scoresHistory.length - 1];
+            let totalRow = ['總分數'];
+            order.forEach(pId => totalRow.push(last.runningTotals[pId]));
+            lines.push(totalRow.map(csvCell).join(','));
+
+            const csvContent = lines.join('\r\n');
+            const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `german_bridge_${new Date().toISOString().slice(0, 10)}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+    </script>
 </body>
+
 </html>
