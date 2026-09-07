@@ -516,6 +516,8 @@
         <h1 id="main-heading">German Bridge Scoring System</h1>
     </header>
     <div id="role-notice" class="role-banner">🔑 Role: Admin mode (can input / modify scores)</div>
+    <div id="connection-status" class="role-banner" style="background:#242424; color:#a0a0a0; font-weight:normal;">P2P:
+        connecting...</div>
 
     <div class="nav-tabs">
         <button class="tab-btn active" id="btn-input" onclick="switchTab('input-panel')">Input</button>
@@ -882,6 +884,7 @@
         let hostConn = null;
         let currentLang = 'zh-HK';
         let peerRetryCount = 0;
+        let clientReconnectTimer = null;
 
         let pCount = 4, currentRound = 1;
         let initialPlayers = [], sortedOrder = [], scoresHistory = [];
@@ -1097,65 +1100,148 @@
             } else {
                 initHostP2P();
             }
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState !== 'visible') return;
+
+                if (peer && peer.disconnected) {
+                    setConnectionStatus('P2P: reconnecting...');
+                    peer.reconnect();
+                }
+                if (isReadOnly && hostPeerId && (!hostConn || !hostConn.open)) {
+                    scheduleClientReconnect(0);
+                }
+            });
         };
 
-        function initHostP2P() {
-            const peerConfig = {
+        function setConnectionStatus(message, isError = false) {
+            const status = document.getElementById('connection-status');
+            if (!status) return;
+            status.innerText = message;
+            status.style.color = isError ? '#cf6679' : '#a0a0a0';
+        }
+
+        function getPeerConfig() {
+            return {
                 host: '0.peerjs.com',
                 port: 443,
                 secure: true,
-                debug: 2
+                debug: 2,
+                config: {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
+                }
             };
+        }
 
-            if (peer) {
-                peer.destroy();
+        function initHostP2P() {
+            if (peer && !peer.destroyed) {
+                if (peer.disconnected) peer.reconnect();
+                return;
             }
 
-            peer = new Peer(peerConfig);
+            peer = new Peer(getPeerConfig());
 
             peer.on('open', (id) => {
                 console.log('P2P Room ID established:', id);
                 peerRetryCount = 0;
+                setConnectionStatus(`P2P: host ready (${connections.filter(conn => conn.open).length} viewer(s))`);
             });
 
             peer.on('connection', (conn) => {
                 connections.push(conn);
-                conn.on('open', () => broadcastData());
+                setConnectionStatus('P2P: viewer connecting...');
+                conn.on('open', () => {
+                    setConnectionStatus(`P2P: host ready (${connections.filter(item => item.open).length} viewer(s))`);
+                    broadcastData();
+                });
+                const removeConnection = () => {
+                    connections = connections.filter(item => item !== conn);
+                    setConnectionStatus(`P2P: host ready (${connections.filter(item => item.open).length} viewer(s))`);
+                };
+                conn.on('close', removeConnection);
+                conn.on('error', removeConnection);
             });
+
+            peer.on('disconnected', () => setConnectionStatus('P2P: host disconnected, reconnecting...', true));
 
             peer.on('error', (err) => {
                 console.error('PeerJS Connection Error:', err);
-                const retryableTypes = ['disconnected', 'network', 'server-error', 'peer-unavailable'];
+                const retryableTypes = ['disconnected', 'network', 'server-error'];
                 const t = translations[currentLang] || translations['zh-HK'];
 
                 if (retryableTypes.includes(err.type) && peerRetryCount < 2) {
                     peerRetryCount += 1;
-                    console.warn(`Retrying PeerJS host setup (${peerRetryCount}/2) after error:`, err.type);
-                    setTimeout(() => initHostP2P(), 1500);
+                    setConnectionStatus(`P2P: retrying (${peerRetryCount}/2)...`, true);
+                    setTimeout(() => {
+                        if (peer && peer.disconnected) peer.reconnect();
+                    }, 1500);
                     return;
                 }
 
                 const message = t.peerError.replace('{type}', err.type || 'unknown');
-                alert(message);
+                setConnectionStatus(message, true);
             });
         }
 
         function initClientP2P(targetHostId) {
-            peer = new Peer();
+            if (!peer || peer.destroyed) peer = new Peer(getPeerConfig());
             peer.on('open', () => {
-                hostConn = peer.connect(targetHostId);
-                hostConn.on('data', (data) => {
-                    pCount = data.pCount;
-                    currentRound = data.currentRound;
-                    initialPlayers = data.initialPlayers;
-                    sortedOrder = data.sortedOrder;
-                    scoresHistory = data.scoresHistory || [];
-
-                    document.getElementById('setup-area').style.display = 'none';
-                    document.getElementById('game-play-area').style.display = 'block';
-                    renderScoreBoard();
-                });
+                connectClientToHost(targetHostId);
             });
+            peer.on('disconnected', () => {
+                setConnectionStatus('P2P: disconnected, reconnecting...', true);
+            });
+            peer.on('error', (err) => {
+                console.error('PeerJS Viewer Error:', err);
+                setConnectionStatus(`P2P: ${err.type || 'connection error'}`, true);
+                scheduleClientReconnect();
+            });
+        }
+
+        function connectClientToHost(targetHostId) {
+            if (!peer || peer.destroyed || peer.disconnected) return;
+            if (hostConn) {
+                hostConn.removeAllListeners();
+                hostConn.close();
+            }
+            setConnectionStatus('P2P: connecting to host...');
+            hostConn = peer.connect(targetHostId, { reliable: true });
+            hostConn.on('open', () => setConnectionStatus('P2P: connected to host'));
+            hostConn.on('data', (data) => {
+                pCount = data.pCount;
+                currentRound = data.currentRound;
+                initialPlayers = data.initialPlayers;
+                sortedOrder = data.sortedOrder;
+                scoresHistory = data.scoresHistory || [];
+
+                document.getElementById('setup-area').style.display = 'none';
+                document.getElementById('game-play-area').style.display = 'block';
+                renderScoreBoard();
+            });
+            hostConn.on('close', () => {
+                hostConn = null;
+                setConnectionStatus('P2P: host connection closed, reconnecting...', true);
+                scheduleClientReconnect();
+            });
+            hostConn.on('error', (err) => {
+                console.error('PeerJS DataConnection Error:', err);
+                setConnectionStatus('P2P: data connection failed', true);
+                scheduleClientReconnect();
+            });
+        }
+
+        function scheduleClientReconnect(delay = 1500) {
+            if (!isReadOnly || !hostPeerId || clientReconnectTimer) return;
+            clientReconnectTimer = setTimeout(() => {
+                clientReconnectTimer = null;
+                if (peer && peer.disconnected) peer.reconnect();
+                if (peer && !peer.disconnected && (!hostConn || !hostConn.open)) {
+                    connectClientToHost(hostPeerId);
+                }
+            }, delay);
         }
 
         function broadcastData() {
@@ -1167,8 +1253,10 @@
                 sortedOrder: sortedOrder,
                 scoresHistory: scoresHistory
             };
-            connections.forEach(conn => {
-                if (conn.open) conn.send(payload);
+            connections = connections.filter(conn => {
+                if (!conn.open) return false;
+                conn.send(payload);
+                return true;
             });
         }
 
