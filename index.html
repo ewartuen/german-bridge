@@ -589,8 +589,8 @@
                     style="padding:10px; font-size:13px; margin:0; flex:1;" onclick="showQRCodeModal()">📱 顯示唯讀 QR
                     Code</button>
                 <button id="copy-link-btn" class="action-btn btn-secondary"
-                    style="padding:10px; font-size:13px; margin:0; flex:1;" onclick="copyReadOnlyLink()">🔗
-                    複製唯讀連結</button>
+                    style="padding:10px; font-size:13px; margin:0; flex:1;" onclick="shareReadOnlyLink()">📤
+                    分享唯讀連結</button>
             </div>
             <div id="export-tools" style="margin-bottom:12px;">
                 <button id="btn-export" class="action-btn btn-success" style="padding:10px; font-size:13px; margin:0;"
@@ -671,7 +671,10 @@
                 boardEmptyText: "開始新對局後，分數表會在這裡實時更新",
                 btnExport: "📊 匯出 Excel 檔",
                 qrButton: "📱 顯示唯讀 QR Code",
-                copyLinkButton: "🔗 複製唯讀連結",
+                shareLinkButton: "📤 分享唯讀連結",
+                shareFallback: "唯讀連結已複製。",
+                roundTitleTemplate: "局 {round} / {total}（剩餘 {remaining} 局，發 {cards} 張）",
+                matchComplete: "對局完成（共 {total} 局）",
                 qrTitle: "玩家唯讀觀看 QR Code",
                 qrHelp: "請確保房主手機網頁開著。玩家掃描一次後即可連線，重開新局也無需重新掃描。",
                 closeText: "關閉",
@@ -681,7 +684,6 @@
                 saveEdit: "儲存變更並重算",
                 cancelEdit: "取消",
                 playerDefaultName: "玩家 {char}",
-                roundTitleTemplate: "局 {round} (發 {cards} 張)",
                 dealerTipTemplate: "👑 莊家: {name}",
                 tagDealer: " (莊)",
                 tagLimit: " (🎯限制位)",
@@ -749,7 +751,7 @@
                 boardEmptyText: "The score table will update here after the new match starts",
                 btnExport: "📊 Export Excel",
                 qrButton: "📱 Show read-only QR code",
-                copyLinkButton: "🔗 Copy read-only link",
+                shareFallback: "Read-only link copied.",
                 qrTitle: "Player read-only QR code",
                 qrHelp: "Make sure the host keeps the page open on their phone. Players can scan once and sync automatically. No re-scan needed after a reset.",
                 closeText: "Close",
@@ -759,7 +761,9 @@
                 saveEdit: "Save changes and recalc",
                 cancelEdit: "Cancel",
                 playerDefaultName: "Player {char}",
-                roundTitleTemplate: "Round {round} ({cards} cards)",
+                shareLinkButton: "📤 Share read-only link",
+                roundTitleTemplate: "Round {round} / {total} ({remaining} remaining, {cards} cards)",
+                matchComplete: "Match complete ({total} rounds)",
                 dealerTipTemplate: "👑 Dealer: {name}",
                 tagDealer: " (Dealer)",
                 tagLimit: " (🎯 last seat)",
@@ -827,7 +831,10 @@
                 boardEmptyText: "开始新对局后，分数表会在这里实时更新",
                 btnExport: "📊 汇出 Excel 檔",
                 qrButton: "📱 显示只读 QR Code",
-                copyLinkButton: "🔗 复制只读链接",
+                shareLinkButton: "📤 分享只读链接",
+                shareFallback: "只读链接已复制。",
+                roundTitleTemplate: "局 {round} / {total}（剩余 {remaining} 局，发 {cards} 张）",
+                matchComplete: "对局完成（共 {total} 局）",
                 qrTitle: "玩家只读观看 QR Code",
                 qrHelp: "请确保房主手机网页开着。玩家扫描一次后即可连线，重开新局也无需重新扫描。",
                 closeText: "关闭",
@@ -837,7 +844,6 @@
                 saveEdit: "保存变更并重算",
                 cancelEdit: "取消",
                 playerDefaultName: "玩家 {char}",
-                roundTitleTemplate: "局 {round} (发 {cards} 张)",
                 dealerTipTemplate: "👑 庄家: {name}",
                 tagDealer: " (庄)",
                 tagLimit: " (🎯限制位)",
@@ -888,6 +894,7 @@
 
         let pCount = 4, currentRound = 1;
         let initialPlayers = [], sortedOrder = [], scoresHistory = [];
+        let viewerCurrentBids = [], viewerCurrentResults = [];
         let editingRoundIndex = -1;
         let dragSrcIndex = null;
 
@@ -1007,8 +1014,8 @@
             if (btnExport) btnExport.innerText = t.btnExport;
             const qrButton = document.getElementById('qr-btn');
             if (qrButton) qrButton.innerText = t.qrButton;
-            const copyBtn = document.getElementById('copy-link-btn');
-            if (copyBtn) copyBtn.innerText = t.copyLinkButton;
+            const shareBtn = document.getElementById('copy-link-btn');
+            if (shareBtn) shareBtn.innerText = t.shareLinkButton;
             const boardRoundCol = document.getElementById('board-round-col');
             if (boardRoundCol) boardRoundCol.innerText = t.boardRoundCol;
 
@@ -1216,9 +1223,12 @@
                 initialPlayers = data.initialPlayers;
                 sortedOrder = data.sortedOrder;
                 scoresHistory = data.scoresHistory || [];
+                viewerCurrentBids = data.currentBids || [];
+                viewerCurrentResults = data.currentResults || [];
 
                 document.getElementById('setup-area').style.display = 'none';
                 document.getElementById('game-play-area').style.display = 'block';
+                setupRoundUI();
                 renderScoreBoard();
             });
             hostConn.on('close', () => {
@@ -1246,12 +1256,22 @@
 
         function broadcastData() {
             if (isReadOnly || !connections.length) return;
+            const currentBids = [];
+            const currentResults = [];
+            for (let i = 0; i < pCount; i++) {
+                const bidInput = document.getElementById(`bid-${i}`);
+                const resultInput = document.getElementById(`res-${i}`);
+                currentBids.push(bidInput ? bidInput.value : '');
+                currentResults.push(resultInput ? resultInput.value : '');
+            }
             const payload = {
                 pCount: pCount,
                 currentRound: currentRound,
                 initialPlayers: initialPlayers,
                 sortedOrder: sortedOrder,
-                scoresHistory: scoresHistory
+                scoresHistory: scoresHistory,
+                currentBids: currentBids,
+                currentResults: currentResults
             };
             connections = connections.filter(conn => {
                 if (!conn.open) return false;
@@ -1266,9 +1286,11 @@
                 document.getElementById('role-notice').innerText = t.roleViewer;
                 document.getElementById('role-notice').style.background = "#1a2634";
                 document.getElementById('role-notice').style.color = "#3498db";
-                document.getElementById('input-panel').style.display = "none";
-                document.getElementById('btn-input').style.display = "none";
+                document.getElementById('setup-area').style.display = "none";
                 document.getElementById('admin-tools').style.display = "none";
+                document.getElementById('btn-toggle-manage').style.display = "none";
+                document.getElementById('btn-reset-round').style.display = "none";
+                document.getElementById('btn-reset-scores').style.display = "none";
                 switchTab('board-panel');
             }
         }
@@ -1357,17 +1379,42 @@
         }
 
         function getCurrentHandCards() {
-            let maxCards = Math.floor(52 / pCount);
-            return ((currentRound - 1) % maxCards) + 1;
+            return ((currentRound - 1) % getTotalRounds()) + 1;
+        }
+
+        function getTotalRounds() {
+            return Math.floor(52 / pCount);
+        }
+
+        function getRemainingRounds() {
+            return Math.max(getTotalRounds() - currentRound + 1, 0);
+        }
+
+        function isMatchComplete() {
+            return currentRound > getTotalRounds();
         }
 
         function setupRoundUI() {
             const t = translations[currentLang] || translations['zh-HK'];
+            if (isMatchComplete()) {
+                document.getElementById('display-round-title').innerText = t.matchComplete.replace('{total}', getTotalRounds());
+                document.getElementById('display-dealer-name').innerText = '';
+                document.getElementById('section-bid').style.display = 'none';
+                document.getElementById('section-result').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('section-bid').style.display = 'block';
+            document.getElementById('section-result').style.display = 'block';
             let currentHandCards = getCurrentHandCards();
             let dealerIdx = (currentRound - 1) % pCount;
             let screwIdx = getScrewPlayerIndexForRound(currentRound);
 
-            document.getElementById('display-round-title').innerText = t.roundTitleTemplate.replace('{round}', currentRound).replace('{cards}', currentHandCards);
+            document.getElementById('display-round-title').innerText = t.roundTitleTemplate
+                .replace('{round}', currentRound)
+                .replace('{total}', getTotalRounds())
+                .replace('{remaining}', getRemainingRounds())
+                .replace('{cards}', currentHandCards);
             document.getElementById('display-dealer-name').innerText = t.dealerTipTemplate.replace('{name}', initialPlayers[dealerIdx]);
 
             let bidSeatOrder = getRoundSeatOrder(currentRound);
@@ -1383,7 +1430,10 @@
                 let labelClass = isDealer ? 'dealer-highlight' : (isScrew ? 'screw-highlight-txt' : '');
                 let inputClass = isDealer ? 'dealer-border' : (isScrew ? 'screw-highlight' : '');
 
-                bidGrid.innerHTML += `<div><div class="player-label ${labelClass}">${name}${labelTag}</div><input type="number" pattern="[0-9]*" class="mobile-input ${inputClass}" id="bid-${idx}" placeholder="0" oninput="onBidInput(${idx})"></div>`;
+                const bidValue = isReadOnly ? (viewerCurrentBids[idx] ?? '') : '';
+                const readOnlyAttrs = isReadOnly ? 'readonly aria-readonly="true"' : '';
+                const bidHandler = isReadOnly ? '' : `oninput="onBidInput(${idx}); broadcastData()"`;
+                bidGrid.innerHTML += `<div><div class="player-label ${labelClass}">${name}${labelTag}</div><input type="number" pattern="[0-9]*" class="mobile-input ${inputClass}" id="bid-${idx}" placeholder="0" value="${bidValue}" ${readOnlyAttrs} ${bidHandler}></div>`;
             });
 
             resultSeatOrder.forEach((idx) => {
@@ -1393,7 +1443,10 @@
                 let labelClass = isDealer ? 'dealer-highlight' : (isScrew ? 'screw-highlight-txt' : '');
                 let inputClass = isDealer ? 'dealer-border' : (isScrew ? 'screw-highlight' : '');
 
-                resGrid.innerHTML += `<div><div class="player-label ${labelClass}">${name}${labelTag}</div><input type="number" pattern="[0-9]*" class="mobile-input ${inputClass}" id="res-${idx}" placeholder="0"></div>`;
+                const resultValue = isReadOnly ? (viewerCurrentResults[idx] ?? '') : '';
+                const readOnlyAttrs = isReadOnly ? 'readonly aria-readonly="true"' : '';
+                const resultHandler = isReadOnly ? '' : 'oninput="broadcastData()"';
+                resGrid.innerHTML += `<div><div class="player-label ${labelClass}">${name}${labelTag}</div><input type="number" pattern="[0-9]*" class="mobile-input ${inputClass}" id="res-${idx}" placeholder="0" value="${resultValue}" ${readOnlyAttrs} ${resultHandler}></div>`;
             });
 
             document.getElementById('section-bid').style.opacity = "1";
@@ -1402,6 +1455,14 @@
             document.getElementById('section-result').style.opacity = "0.4";
             document.getElementById('section-result').style.pointerEvents = "none";
             document.getElementById('btn-end-round').disabled = true;
+            if (isReadOnly) {
+                document.getElementById('section-bid').style.opacity = "1";
+                document.getElementById('section-bid').style.pointerEvents = "none";
+                document.getElementById('section-result').style.opacity = "1";
+                document.getElementById('section-result').style.pointerEvents = "none";
+                document.getElementById('btn-start-round').style.display = "none";
+                document.getElementById('btn-end-round').style.display = "none";
+            }
         }
 
         function getBidValue(i) {
@@ -1481,6 +1542,7 @@
 
         // 💡 勝墩邏輯校驗：勝墩總數必須等於總牌數
         function submitResults() {
+            if (isMatchComplete()) return;
             const t = translations[currentLang] || translations['zh-HK'];
             let maxCards = getCurrentHandCards();
             let bids = [], results = [], totalResult = 0;
@@ -1506,6 +1568,8 @@
             scoresHistory.push({ round: currentRound, bids: bids, results: results });
             recalculateAllScores();
             currentRound++;
+            viewerCurrentBids = [];
+            viewerCurrentResults = [];
             setupRoundUI();
             renderScoreBoard(); // 桌面版即時渲染
             saveGameState();
@@ -1655,15 +1719,34 @@
 
         function closeQRModal() { document.getElementById('qr-modal').style.display = 'none'; }
 
-        function copyReadOnlyLink() {
+        async function shareReadOnlyLink() {
             const t = translations[currentLang] || translations['zh-HK'];
             if (!peer || !peer.id) {
                 alert(t.peerWaiting);
                 return;
             }
-            navigator.clipboard.writeText(getReadOnlyURL()).then(() => {
-                alert("已複製專屬 P2P 唯讀連結！");
-            });
+            const url = getReadOnlyURL();
+            const shareData = {
+                title: t.title,
+                text: t.roleViewer,
+                url: url
+            };
+
+            if (navigator.share) {
+                try {
+                    await navigator.share(shareData);
+                    return;
+                } catch (err) {
+                    if (err.name === 'AbortError') return;
+                }
+            }
+
+            try {
+                await navigator.clipboard.writeText(url);
+                alert(t.shareFallback || '唯讀連結已複製。');
+            } catch (err) {
+                window.prompt(t.shareFallback || '請複製唯讀連結：', url);
+            }
         }
 
         function resetCurrentRound() { setupRoundUI(); }
